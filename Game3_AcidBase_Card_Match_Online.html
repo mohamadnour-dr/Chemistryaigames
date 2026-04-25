@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acid–Base Card Match — Game 3</title>
+<style>
+  :root{--bg:#0F1923;--acid-bg:#3D0A0A;--acid-fr:#C0392B;--acid-hl:#E74C3C;
+    --conj-bg:#0A2340;--conj-fr:#1A5276;--conj-hl:#2E86C1;
+    --match-bg:#0A2D1F;--match-fr:#1E8449;--match-hl:#27AE60;
+    --amber:#F59E0B;--white:#FFF;--muted:#94A3B8;--navy:#0F2044;--dark:#132038;--mid:#1E3A5F;--teal:#0D9488;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--white);min-height:100vh;}
+  .container{max-width:900px;margin:0 auto;padding:1.5rem 1rem 3rem;}
+
+  .header{text-align:center;padding:2rem 1rem;background:linear-gradient(135deg,#1a0a0a,var(--dark));border-radius:16px;border:1px solid var(--acid-fr);margin-bottom:1.5rem;}
+  .badge{display:inline-block;background:var(--teal);color:white;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 14px;border-radius:20px;margin-bottom:.8rem;}
+  .header h1{font-size:clamp(1.5rem,5vw,2.4rem);font-weight:800;}
+  .header p{color:var(--muted);font-size:14px;margin-top:.4rem;}
+
+  /* Rule box */
+  .rule-box{background:var(--mid);border:2px solid var(--amber);border-radius:12px;padding:1rem 1.2rem;margin-bottom:1.5rem;text-align:center;}
+  .rule-box .rule-title{font-size:11px;font-weight:700;color:var(--amber);letter-spacing:.5px;margin-bottom:.4rem;}
+  .rule-box .rule-text{font-size:14px;font-weight:700;color:var(--white);}
+  .rule-box .rule-sub{font-size:12px;color:var(--muted);margin-top:.3rem;}
+
+  /* Progress */
+  .progress-wrap{margin-bottom:1.2rem;}
+  .prog-top{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:5px;}
+  .progress-bar{height:5px;background:var(--dark);border-radius:3px;}
+  .progress-fill{height:100%;border-radius:3px;background:var(--acid-hl);transition:width .4s;}
+  .dots{display:flex;gap:8px;justify-content:center;margin-top:8px;}
+  .dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid var(--mid);color:var(--muted);background:var(--dark);transition:all .3s;}
+  .dot.done{background:var(--match-hl);border-color:var(--match-hl);color:white;}
+  .dot.current{background:var(--acid-hl);border-color:var(--acid-hl);color:white;}
+
+  /* Layout */
+  .game-layout{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+  @media(max-width:600px){.game-layout{grid-template-columns:1fr;}}
+
+  /* Acid card */
+  .acid-card{background:var(--acid-bg);border:2px solid var(--acid-fr);border-radius:16px;overflow:hidden;}
+  .card-header{background:#5B0808;padding:.5rem 1rem;font-size:10px;font-weight:700;color:var(--acid-hl);letter-spacing:1px;text-align:center;}
+  .card-formula{font-size:clamp(2.5rem,8vw,4rem);font-weight:800;text-align:center;padding:.8rem .5rem .4rem;line-height:1;}
+  .card-name{text-align:center;font-size:13px;font-weight:700;color:var(--white);background:var(--mid);padding:.4rem;margin:.3rem .6rem;border-radius:6px;}
+  .card-props{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;padding:.4rem .6rem;}
+  .prop{background:#3D0A0A;border:1px solid var(--acid-fr);border-radius:6px;padding:.4rem;text-align:center;}
+  .prop-label{font-size:8px;font-weight:700;color:var(--acid-hl);letter-spacing:.5px;}
+  .prop-val{font-size:13px;color:var(--white);font-weight:600;margin-top:2px;}
+  .card-eq{background:#1C0000;padding:.5rem .6rem;margin:.3rem .6rem .6rem;border-radius:6px;font-size:12px;color:var(--amber);font-style:italic;text-align:center;}
+  .rule-remind{background:var(--dark);border:1px solid var(--amber);border-radius:6px;padding:.4rem .6rem;margin:0 .6rem .6rem;font-size:11px;color:var(--white);}
+  .rule-remind strong{color:var(--amber);}
+
+  /* Options */
+  .options-panel{display:flex;flex-direction:column;gap:.5rem;}
+  .opts-label{font-size:13px;font-weight:700;color:var(--white);margin-bottom:.2rem;}
+  .opt{background:var(--conj-bg);border:2px solid var(--conj-fr);border-radius:12px;padding:.9rem 1rem;cursor:pointer;font-size:clamp(1.2rem,4vw,1.8rem);font-weight:800;text-align:center;color:var(--white);transition:all .2s;position:relative;}
+  .opt:hover:not(:disabled){border-color:var(--conj-hl);background:#0f2d4d;}
+  .opt:disabled{cursor:not-allowed;}
+  .opt.correct{background:var(--match-bg);border-color:var(--match-hl);color:#6EE7B7;}
+  .opt.wrong{background:#3D0A0A;border-color:var(--acid-fr);color:#FCA5A5;}
+  .opt-lbl{position:absolute;top:8px;left:10px;width:22px;height:22px;border-radius:50%;background:var(--conj-fr);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;}
+  .opt.correct .opt-lbl{background:var(--match-hl);}
+  .opt.wrong .opt-lbl{background:var(--acid-fr);}
+  .opt-name{font-size:10px;color:var(--muted);margin-top:3px;}
+
+  /* Feedback */
+  .feedback{display:none;margin-top:1rem;background:var(--dark);border-radius:12px;overflow:hidden;}
+  .feedback.show{display:block;}
+  .fb-header{padding:.7rem 1rem;font-weight:700;font-size:14px;}
+  .feedback.ok .fb-header{background:#032B1A;color:#6EE7B7;}
+  .feedback.bad .fb-header{background:#3D0A0A;color:#FCA5A5;}
+  .matched-pair{display:flex;align-items:center;gap:.6rem;padding:.8rem;flex-wrap:wrap;}
+  .pair-acid{background:var(--acid-bg);border:1px solid var(--acid-fr);border-radius:8px;padding:.5rem .8rem;text-align:center;flex:1;min-width:80px;}
+  .pair-arrow{color:var(--amber);font-weight:700;font-size:14px;text-align:center;flex-shrink:0;}
+  .pair-conj{background:var(--match-bg);border:1px solid var(--match-hl);border-radius:8px;padding:.5rem .8rem;text-align:center;flex:1;min-width:80px;}
+  .pair-formula{font-size:1.4rem;font-weight:800;}
+  .pair-label{font-size:10px;color:var(--muted);margin-top:2px;}
+  .exp-list{list-style:none;padding:.3rem .8rem .6rem;}
+  .exp-list li{display:flex;gap:7px;font-size:12px;color:var(--white);line-height:1.5;margin-bottom:4px;}
+  .exp-list li::before{content:'→';color:var(--amber);flex-shrink:0;}
+  .relevance{background:#1A0A00;border-top:1px solid var(--amber);padding:.6rem .8rem;font-size:11.5px;color:var(--white);}
+  .relevance strong{color:var(--amber);}
+  .next-btn{display:none;width:100%;background:var(--match-hl);color:white;border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;margin-top:.6rem;}
+  .next-btn:hover{opacity:.9;}
+  .next-btn.show{display:block;}
+
+  /* Results */
+  .results{display:none;text-align:center;padding:2rem 1.5rem;background:var(--dark);border-radius:16px;border:2px solid var(--match-hl);}
+  .results.show{display:block;}
+  .res-score{font-size:3rem;font-weight:800;color:var(--amber);margin:.5rem 0;}
+  .summary-grid{margin:1.2rem 0;}
+  .summary-row{display:flex;justify-content:space-between;font-size:13px;padding:.5rem .8rem;border-radius:6px;margin-bottom:4px;}
+  .summary-row:nth-child(odd){background:var(--navy);}
+  .disc{background:#032B1A;border:1px solid var(--teal);color:white;border-radius:10px;padding:1rem;text-align:left;font-size:13px;line-height:1.7;margin-top:1rem;}
+  .disc strong{color:var(--amber);}
+  .restart-btn{margin-top:1.2rem;background:var(--navy);border:2px solid var(--match-hl);color:white;padding:10px 24px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;}
+
+  /* Rubric */
+  .rubric{margin-top:2rem;background:var(--dark);border:1px solid var(--mid);border-radius:16px;padding:1.5rem;display:none;}
+  .rubric h3{color:var(--teal);font-size:15px;margin-bottom:1rem;}
+  .rub-row{display:flex;align-items:center;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid var(--mid);flex-wrap:wrap;gap:.4rem;}
+  .rub-row:last-of-type{border-bottom:none;}
+  .rub-label{flex:1;min-width:160px;}
+  .rub-title{font-size:13px;font-weight:600;color:white;}
+  .rub-desc{font-size:11px;color:var(--muted);margin-top:1px;}
+  .stars{display:flex;gap:5px;}
+  .star{width:30px;height:30px;border-radius:5px;border:1.5px solid var(--mid);background:var(--navy);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .star:hover,.star.sel{background:var(--amber);border-color:var(--amber);color:var(--navy);}
+  .sub-rubric{margin-top:1rem;width:100%;background:var(--amber);color:var(--navy);border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;}
+  .rub-thanks{display:none;text-align:center;color:var(--match-hl);font-size:13px;margin-top:.6rem;}
+  footer{text-align:center;margin-top:2rem;font-size:11px;color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="badge">GENERAL CHEMISTRY · GAME 3</div>
+    <h1>🃏 Acid–Base Card Match</h1>
+    <p>Match each acid with its conjugate base to master Brønsted–Lowry theory</p>
+  </div>
+
+  <div class="rule-box">
+    <div class="rule-title">THE GOLDEN RULE</div>
+    <div class="rule-text">Conjugate base = acid − H⁺</div>
+    <div class="rule-sub">Remove one proton · add one unit of negative charge</div>
+  </div>
+
+  <div class="progress-wrap" id="prog-wrap">
+    <div class="prog-top"><span id="round-label">Round 1 of 6</span><span id="score-label">Score: 0</span></div>
+    <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+    <div class="dots" id="dots"></div>
+  </div>
+
+  <div id="game-area">
+    <div class="game-layout">
+      <div class="acid-card">
+        <div class="card-header">ACID CARD</div>
+        <div class="card-formula" id="acid-formula"></div>
+        <div class="card-name" id="acid-name"></div>
+        <div class="card-props">
+          <div class="prop"><div class="prop-label">TYPE</div><div class="prop-val" id="acid-type"></div></div>
+          <div class="prop"><div class="prop-label">pKa</div><div class="prop-val" id="acid-pka" style="color:var(--amber);font-size:1.1rem;font-weight:700;"></div></div>
+        </div>
+        <div class="card-eq" id="acid-eq"></div>
+        <div class="rule-remind"><strong>Rule:</strong> conjugate base = remove 1 H⁺, add −1 charge</div>
+      </div>
+      <div class="options-panel">
+        <div class="opts-label">Which card is the conjugate base?</div>
+        <div id="opts"></div>
+        <div class="feedback" id="feedback">
+          <div class="fb-header" id="fb-header"></div>
+          <div class="matched-pair">
+            <div class="pair-acid">
+              <div class="pair-formula" id="pair-acid-f" style="color:var(--acid-hl)"></div>
+              <div class="pair-label">Acid</div>
+            </div>
+            <div class="pair-arrow">− H⁺<br>⟶</div>
+            <div class="pair-conj">
+              <div class="pair-formula" id="pair-conj-f" style="color:#6EE7B7"></div>
+              <div class="pair-label" id="pair-conj-n"></div>
+            </div>
+          </div>
+          <ul class="exp-list" id="fb-exp"></ul>
+          <div class="relevance" id="fb-rel"></div>
+          <button class="next-btn" id="next-btn"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="results" id="results">
+    <div style="font-size:2rem">🏆</div>
+    <div class="res-score" id="res-score"></div>
+    <div id="res-label" style="color:var(--muted);font-size:14px;margin-bottom:1rem;"></div>
+    <div class="summary-grid" id="summary-grid"></div>
+    <div class="disc">
+      <strong>Stretch questions:</strong><br>
+      1. HCO₃⁻ is conjugate base of H₂CO₃ AND conjugate acid of CO₃²⁻. What does this tell you about amphoteric species?<br>
+      2. Given Ka(CH₃COOH) = 1.8×10⁻⁵, calculate Kb of acetate (CH₃COO⁻) using Ka × Kb = Kw.<br>
+      3. A patient has blood pH 7.28 (metabolic acidosis). Which conjugate pair acts as the first buffer, and which direction does equilibrium shift?
+    </div>
+    <button class="restart-btn" onclick="restart()">Play again</button>
+  </div>
+
+  <div class="rubric" id="rubric">
+    <h3>📋 Game Evaluation Rubric</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:1rem">Rate this game (1 = poor · 5 = excellent)</p>
+    <div id="rub-rows"></div>
+    <button class="sub-rubric" onclick="submitRubric()">Submit evaluation</button>
+    <div class="rub-thanks" id="rub-thanks">✓ Thank you — your evaluation has been recorded.</div>
+  </div>
+
+  <footer></footer>
+</div>
+
+<script>
+const PAIRS = [
+  { acid:{formula:"HCl",name:"Hydrochloric acid",type:"Strong acid",pKa:"≈ −7"},
+    conj:{formula:"Cl⁻",name:"Chloride ion",charge:"−1"},
+    reaction:"HCl → H⁺ + Cl⁻",
+    wrong:["OH⁻","H₂O","ClO₄⁻"], wrongNames:["Hydroxide","Water","Perchlorate"],
+    ans:0,
+    exp:["HCl donates H⁺ completely → strong acid, 100% dissociation in water",
+         "Cl⁻ is an extremely weak base — conjugate of strong acid = weak base rule",
+         "Charge: neutral acid loses H⁺(+1) → conjugate base gains −1 charge",
+         "pKa ≈ −7: far below 0 confirms complete ionisation in aqueous solution"],
+    discipline:"HCl is secreted by parietal cells in the stomach (gastric acid, pH ≈ 1.5–2). Proton pump inhibitors block H⁺/K⁺-ATPase to reduce HCl production." },
+  { acid:{formula:"CH₃COOH",name:"Acetic acid",type:"Weak acid",pKa:"4.76"},
+    conj:{formula:"CH₃COO⁻",name:"Acetate ion",charge:"−1"},
+    reaction:"CH₃COOH ⇌ H⁺ + CH₃COO⁻",
+    wrong:["CH₃OH","HCOO⁻","CO₃²⁻"], wrongNames:["Methanol","Formate","Carbonate"],
+    ans:1,
+    exp:["pKa = 4.76: only ~1.3% dissociated at pH 7 — a true weak acid",
+         "Acetate (CH₃COO⁻) is a moderately strong conjugate base",
+         "Formula: remove H from –COOH → –COO⁻ (carboxylate anion)",
+         "Henderson-Hasselbalch: pH = 4.76 + log([CH₃COO⁻]/[CH₃COOH])"],
+    discipline:"Acetate is a key metabolic intermediate — acetyl-CoA enters the citric acid cycle. Acetate buffers are used in IV fluids and pharmaceutical formulations." },
+  { acid:{formula:"H₂CO₃",name:"Carbonic acid",type:"Weak polyprotic",pKa:"6.35"},
+    conj:{formula:"HCO₃⁻",name:"Bicarbonate ion",charge:"−1"},
+    reaction:"H₂CO₃ ⇌ H⁺ + HCO₃⁻  (pKa₁ = 6.35)",
+    wrong:["CO₃²⁻","H₂O","OH⁻"], wrongNames:["Carbonate","Water","Hydroxide"],
+    ans:2,
+    exp:["H₂CO₃ has 2 ionisable protons — first dissociation gives HCO₃⁻",
+         "HCO₃⁻ is amphoteric: can act as BOTH acid (→CO₃²⁻) and base (→H₂CO₃)",
+         "pKa₁ = 6.35 makes this pair the key physiological buffer",
+         "Blood pH 7.4: pH = 6.35 + log([HCO₃⁻]/[H₂CO₃]) → [HCO₃⁻]/[H₂CO₃] ≈ 20:1"],
+    discipline:"The bicarbonate buffer system controls blood pH. Kidneys regulate [HCO₃⁻] and lungs regulate [CO₂] = [H₂CO₃]. Disruption causes acidosis or alkalosis." },
+  { acid:{formula:"NH₄⁺",name:"Ammonium ion",type:"Cationic weak acid",pKa:"9.25"},
+    conj:{formula:"NH₃",name:"Ammonia",charge:"0"},
+    reaction:"NH₄⁺ ⇌ H⁺ + NH₃  (pKa = 9.25)",
+    wrong:["NO₃⁻","N₂H₄","OH⁻"], wrongNames:["Nitrate","Hydrazine","Hydroxide"],
+    ans:3,
+    exp:["NH₄⁺ is the conjugate acid of ammonia — a cation can be an acid",
+         "pKa = 9.25: at blood pH 7.4, NH₄⁺ dominates over NH₃",
+         "NH₃ is a moderately strong base: Kb = 1.8×10⁻⁵ (pKb = 4.75)",
+         "Ka × Kb = Kw = 1.0×10⁻¹⁴ → pKa + pKb = 14 (conjugate pair rule)"],
+    discipline:"Liver converts NH₄⁺ (toxic) to urea for excretion. In hepatic failure, NH₃/NH₄⁺ accumulates → hepatic encephalopathy. Lactulose therapy acidifies the colon to trap NH₄⁺." },
+  { acid:{formula:"H₂PO₄⁻",name:"Dihydrogen phosphate",type:"Amphoteric / weak acid",pKa:"7.20"},
+    conj:{formula:"HPO₄²⁻",name:"Monohydrogen phosphate",charge:"−2"},
+    reaction:"H₂PO₄⁻ ⇌ H⁺ + HPO₄²⁻  (pKa₂ = 7.20)",
+    wrong:["H₃PO₄","PO₄³⁻","H₂O"], wrongNames:["Phosphoric acid","Phosphate","Water"],
+    ans:0,
+    exp:["H₃PO₄ pKa values: pKa₁=2.15, pKa₂=7.20, pKa₃=12.35 — three steps",
+         "H₂PO₄⁻/HPO₄²⁻ pair (pKa₂=7.20) operates near physiological pH",
+         "Removing H⁺ from H₂PO₄⁻ (charge −1) gives HPO₄²⁻ (charge −2)",
+         "H₂PO₄⁻ is amphoteric: can donate OR accept H⁺"],
+    discipline:"Intracellular phosphate buffer (pH 7.2). ATP, DNA, and phospholipids all contain phosphate groups — understanding pKa is essential for pharmacokinetics." },
+  { acid:{formula:"HF",name:"Hydrofluoric acid",type:"Weak acid",pKa:"3.17"},
+    conj:{formula:"F⁻",name:"Fluoride ion",charge:"−1"},
+    reaction:"HF ⇌ H⁺ + F⁻  (pKa = 3.17)",
+    wrong:["Cl⁻","OH⁻","HCO₃⁻"], wrongNames:["Chloride","Hydroxide","Bicarbonate"],
+    ans:1,
+    exp:["HF is weak (pKa 3.17) despite F having highest electronegativity — strong H–F bond wins",
+         "HCl is strong because H–Cl bond is much weaker → complete proton donation",
+         "F⁻ is a moderate conjugate base — conjugate of weak acid = stronger base",
+         "Across Group 17: bond strength HF>HCl>HBr>HI → acid strength reverses"],
+    discipline:"Fluoride (F⁻) incorporates into hydroxyapatite → fluorapatite (cavity prevention). NaF in toothpaste. HF burns are clinically dangerous despite being a weak acid." },
+];
+
+let current=0, score=0;
+const optLabels=['A','B','C','D'];
+
+function buildDots(){
+  const c=document.getElementById('dots'); c.innerHTML='';
+  PAIRS.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='dot'+(i<current?' done':i===current?' current':'');
+    d.textContent=i<current?'✓':i+1;
+    c.appendChild(d);
+  });
+}
+
+function buildOpts(p){
+  // Build 4 options: insert correct at p.ans position
+  const formulas=[...p.wrong]; const names=[...p.wrongNames];
+  formulas.splice(p.ans,0,p.conj.formula); names.splice(p.ans,0,p.conj.name);
+  const c=document.getElementById('opts'); c.innerHTML='';
+  formulas.forEach((f,i)=>{
+    const b=document.createElement('button');
+    b.className='opt';
+    const fs=f.length>6?'1.2rem':f.length>4?'1.5rem':'1.8rem';
+    b.innerHTML=`<span class="opt-lbl">${optLabels[i]}</span><div style="flex:1"><div style="font-size:${fs}">${f}</div><div class="opt-name">${names[i]}</div></div>`;
+    b.onclick=()=>answer(i,b,p);
+    c.appendChild(b);
+  });
+}
+
+function renderRound(){
+  if(current>=PAIRS.length){showResults();return;}
+  const p=PAIRS[current];
+  document.getElementById('round-label').textContent=`Round ${current+1} of ${PAIRS.length}`;
+  document.getElementById('score-label').textContent=`Score: ${score}`;
+  document.getElementById('prog-fill').style.width=`${(current/PAIRS.length)*100}%`;
+  document.getElementById('acid-formula').textContent=p.acid.formula;
+  document.getElementById('acid-name').textContent=p.acid.name;
+  document.getElementById('acid-type').textContent=p.acid.type;
+  document.getElementById('acid-pka').textContent=p.acid.pKa;
+  document.getElementById('acid-eq').textContent=p.reaction;
+  buildDots(); buildOpts(p);
+  document.getElementById('feedback').className='feedback';
+  document.getElementById('next-btn').className='next-btn';
+}
+
+function answer(i,btn,p){
+  const correct=i===p.ans;
+  if(correct)score++;
+  document.querySelectorAll('.opt').forEach((b,idx)=>{
+    b.disabled=true;
+    if(idx===p.ans)b.classList.add('correct');
+    else if(idx===i&&!correct)b.classList.add('wrong');
+  });
+  const fb=document.getElementById('feedback');
+  fb.className='feedback show '+(correct?'ok':'bad');
+  document.getElementById('fb-header').textContent=correct?`✓ Matched! ${p.acid.formula} → ${p.conj.formula}`:`✗ Incorrect — correct answer: ${p.conj.formula} (${p.conj.name})`;
+  document.getElementById('pair-acid-f').textContent=p.acid.formula;
+  document.getElementById('pair-conj-f').textContent=p.conj.formula;
+  document.getElementById('pair-conj-n').textContent=p.conj.name+' (charge '+p.conj.charge+')';
+  document.getElementById('fb-exp').innerHTML=p.exp.map(e=>`<li>${e}</li>`).join('');
+  document.getElementById('fb-rel').innerHTML=`<strong>Relevance:</strong> ${p.discipline}`;
+  document.getElementById('score-label').textContent=`Score: ${score}`;
+  const nb=document.getElementById('next-btn');
+  nb.className='next-btn show';
+  nb.textContent=current<PAIRS.length-1?`Round ${current+2} →`:'See results →';
+}
+
+document.getElementById('next-btn').onclick=()=>{current++;renderRound();};
+
+function showResults(){
+  document.getElementById('game-area').style.display='none';
+  document.getElementById('prog-wrap').style.display='none';
+  const pct=Math.round(score/PAIRS.length*100);
+  document.getElementById('res-score').textContent=`${score} / ${PAIRS.length}`;
+  document.getElementById('res-label').textContent=`${pct}% — ${pct>=83?'Outstanding':pct>=67?'Excellent':pct>=50?'Good':'Keep reviewing'}`;
+  const pairs=['HCl → Cl⁻','CH₃COOH → CH₃COO⁻','H₂CO₃ → HCO₃⁻','NH₄⁺ → NH₃','H₂PO₄⁻ → HPO₄²⁻','HF → F⁻'];
+  document.getElementById('summary-grid').innerHTML=`<div style="font-size:13px;font-weight:700;color:var(--teal);margin-bottom:.5rem">All 6 conjugate pairs</div>`+pairs.map(pair=>`<div class="summary-row"><span style="color:var(--acid-hl)">${pair.split('→')[0].trim()}</span><span style="color:var(--muted)">− H⁺ →</span><span style="color:#6EE7B7">${pair.split('→')[1].trim()}</span></div>`).join('');
+  document.getElementById('results').className='results show';
+  document.getElementById('rubric').style.display='block';
+  buildRubric();
+}
+
+function buildRubric(){
+  const dims=[['Scientific accuracy','Were the acid–base pairs and pKa values correct?'],['Conceptual clarity','Were the clues and explanations clear?'],['Disciplinary relevance','Did the game connect to your pharmacy/biochem/pre-med major?'],['Difficulty calibration','Was the challenge level appropriate?'],['Answer feedback quality','Did the reveal slides help you understand the conjugate pairs?']];
+  document.getElementById('rub-rows').innerHTML=dims.map((d,di)=>`<div class="rub-row"><div class="rub-label"><div class="rub-title">${d[0]}</div><div class="rub-desc">${d[1]}</div></div><div class="stars">${[1,2,3,4,5].map(n=>`<div class="star" onclick="selStar(${di},${n},this)">${n}</div>`).join('')}</div></div>`).join('');
+}
+
+function selStar(dim,val,el){el.closest('.stars').querySelectorAll('.star').forEach(s=>s.classList.remove('sel'));el.classList.add('sel');}
+function submitRubric(){document.getElementById('rub-thanks').style.display='block';document.querySelector('.sub-rubric').disabled=true;}
+
+function restart(){
+  current=0;score=0;
+  document.getElementById('results').className='results';
+  document.getElementById('rubric').style.display='none';
+  document.getElementById('game-area').style.display='block';
+  document.getElementById('prog-wrap').style.display='block';
+  renderRound();
+}
+
+renderRound();
+</script>
+</body>
+</html>

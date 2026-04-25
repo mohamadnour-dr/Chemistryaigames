@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VSEPR Escape Room — Game 2</title>
+<style>
+  :root {
+    --bg:#0D1117;--wall:#1A2744;--floor:#243040;--door-bg:#2E1F0F;--door-fr:#5C3D1A;
+    --teal:#0D9488;--amber:#F59E0B;--white:#FFFFFF;--muted:#94A3B8;
+    --navy:#0F2044;--dark:#132038;--mid:#1E3A5F;--slate:#334155;
+    --red:#B91C1C;--success:#059669;--gold:#D4AC0D;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--white);min-height:100vh;}
+  .container{max-width:900px;margin:0 auto;padding:1.5rem 1rem 3rem;}
+
+  /* Header */
+  .header{text-align:center;padding:2rem 1rem;background:linear-gradient(135deg,var(--wall),var(--dark));border-radius:16px;border:1px solid var(--amber);margin-bottom:1.5rem;position:relative;overflow:hidden;}
+  .room-label{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:var(--teal);color:white;font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 14px;border-radius:20px;}
+  .door-icon{position:absolute;right:24px;top:50%;transform:translateY(-50%);font-size:3rem;opacity:.3;}
+  .header h1{font-size:clamp(1.5rem,5vw,2.4rem);font-weight:800;}
+  .header p{color:var(--muted);font-size:14px;margin-top:.4rem;}
+
+  /* VSEPR table */
+  .vsepr-panel{background:var(--dark);border:2px solid var(--gold);border-radius:12px;padding:1rem;margin-bottom:1.5rem;}
+  .vsepr-title{text-align:center;font-size:12px;font-weight:700;color:var(--teal);letter-spacing:1px;margin-bottom:.75rem;}
+  .vsepr-note{text-align:center;font-size:10px;color:var(--muted);margin-top:.5rem;font-style:italic;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  th{background:#0D5C6E;color:white;padding:5px 6px;text-align:center;font-weight:700;}
+  td{padding:5px 6px;text-align:center;border:1px solid var(--slate);}
+  tr:nth-child(odd) td{background:#1C2D3F;}
+  tr:nth-child(even) td{background:#162538;}
+  td.geom{text-align:left;font-weight:700;}
+  tr.highlight td{background:var(--amber);color:var(--navy);font-weight:700;}
+
+  /* Progress */
+  .progress-wrap{margin-bottom:1.2rem;}
+  .progress-label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:5px;}
+  .progress-bar{height:5px;background:var(--dark);border-radius:3px;}
+  .progress-fill{height:100%;border-radius:3px;background:var(--teal);transition:width .4s;}
+  .doors{display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap;}
+  .door-dot{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid var(--mid);color:var(--muted);background:var(--dark);transition:all .3s;}
+  .door-dot.unlocked{background:var(--success);border-color:var(--success);color:white;}
+  .door-dot.current{background:var(--red);border-color:var(--red);color:white;}
+
+  /* Challenge */
+  .challenge{background:var(--dark);border:2px solid var(--mid);border-radius:16px;overflow:hidden;margin-bottom:1.5rem;}
+  .ch-header{background:var(--wall);padding:.8rem 1.2rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+  .door-badge{background:var(--red);color:white;font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;}
+  .door-badge.open{background:var(--success);}
+  .ch-title{font-size:13px;color:var(--amber);font-weight:600;}
+
+  /* Hint cards */
+  .hints{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;padding:1.2rem;background:var(--navy);}
+  @media(max-width:520px){.hints{grid-template-columns:1fr;}}
+  .hint{border-radius:12px;padding:1rem;border:2px solid;}
+  .hint-label{font-size:9px;font-weight:700;letter-spacing:.5px;margin-bottom:.5rem;}
+  .hint-val{font-size:2rem;font-weight:800;text-align:center;line-height:1;}
+  .hint-sub{font-size:11px;text-align:center;margin-top:.4rem;font-style:italic;}
+  .hint.formula{background:#042C53;border-color:#2E86C1;} .hint.formula .hint-label{color:#2E86C1;} .hint.formula .hint-sub{color:#7EC8F4;}
+  .hint.ve{background:#052E16;border-color:#059669;} .hint.ve .hint-label{color:#059669;} .hint.ve .hint-sub{color:#6EE7B7;}
+  .hint.lp{background:#1C0E00;border-color:#F59E0B;} .hint.lp .hint-label{color:#F59E0B;} .hint.lp .hint-sub{color:#FCD34D;}
+
+  /* Options */
+  .opts-area{padding:1rem 1.2rem 1.2rem;}
+  .opts-q{font-size:14px;font-weight:700;color:var(--white);margin-bottom:.8rem;}
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;}
+  @media(max-width:480px){.opts{grid-template-columns:1fr;}}
+  .opt{background:var(--mid);border:2px solid #2D4A6E;border-radius:10px;padding:.8rem 1rem;cursor:pointer;font-size:13.5px;color:white;text-align:left;transition:all .2s;display:flex;align-items:center;gap:8px;}
+  .opt:hover:not(:disabled){border-color:var(--teal);}
+  .opt:disabled{cursor:not-allowed;}
+  .opt.correct{background:#032B1A;border-color:var(--success);color:#6EE7B7;}
+  .opt.wrong{background:#3D0A0A;border-color:var(--red);color:#FCA5A5;}
+  .opt-lbl{width:24px;height:24px;border-radius:50%;background:#2D4A6E;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;}
+  .opt.correct .opt-lbl{background:var(--success);}
+  .opt.wrong .opt-lbl{background:var(--red);}
+
+  /* Feedback */
+  .feedback{padding:1rem 1.2rem;display:none;border-top:1px solid var(--mid);}
+  .feedback.show{display:block;}
+  .fb-title{font-weight:700;font-size:15px;margin-bottom:.7rem;}
+  .feedback.ok .fb-title{color:#6EE7B7;}
+  .feedback.bad .fb-title{color:#FCA5A5;}
+  .geo-reveal{display:flex;gap:1rem;align-items:center;background:var(--navy);border-radius:10px;padding:1rem;margin-bottom:.8rem;flex-wrap:wrap;}
+  .geo-name{font-size:1.6rem;font-weight:800;color:white;}
+  .geo-angle{font-size:13px;color:var(--success);font-weight:600;}
+  .geo-formula{font-size:1.2rem;font-weight:700;color:var(--amber);}
+  .exp-list{list-style:none;padding:0;}
+  .exp-list li{display:flex;gap:8px;font-size:12.5px;color:white;line-height:1.5;margin-bottom:5px;}
+  .exp-list li::before{content:'→';color:var(--amber);flex-shrink:0;}
+  .relevance{background:#1A0A00;border:1px solid var(--amber);border-radius:8px;padding:.7rem;font-size:12px;color:white;margin-top:.7rem;}
+  .relevance strong{color:var(--amber);}
+  .next-btn{display:none;width:100%;background:var(--teal);color:white;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;margin-top:.8rem;}
+  .next-btn:hover{opacity:.9;}
+  .next-btn.show{display:block;}
+
+  /* Results */
+  .results{display:none;text-align:center;padding:2rem 1.5rem;background:var(--dark);border-radius:16px;border:2px solid var(--success);}
+  .results.show{display:block;}
+  .res-score{font-size:3rem;font-weight:800;color:var(--amber);margin:.5rem 0;}
+  .grade-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin:1.2rem 0;}
+  .grade-card{padding:.6rem 1rem;border-radius:8px;border:2px solid;font-size:12px;}
+  .disc{background:#032B1A;border:1px solid var(--teal);color:white;border-radius:10px;padding:1rem;text-align:left;font-size:13px;line-height:1.6;margin-top:1rem;}
+  .disc strong{color:var(--amber);}
+  .restart-btn{margin-top:1.2rem;background:var(--navy);border:2px solid var(--teal);color:white;padding:10px 24px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;}
+
+  /* Rubric */
+  .rubric{margin-top:2rem;background:var(--dark);border:1px solid var(--mid);border-radius:16px;padding:1.5rem;display:none;}
+  .rubric h3{color:var(--teal);font-size:16px;margin-bottom:1rem;}
+  .rubric-row{display:flex;align-items:center;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid var(--mid);flex-wrap:wrap;gap:.5rem;}
+  .rubric-row:last-of-type{border-bottom:none;}
+  .rubric-label{flex:1;min-width:160px;}
+  .rubric-title{font-size:13px;font-weight:600;color:white;}
+  .rubric-desc{font-size:11px;color:var(--muted);margin-top:2px;}
+  .rubric-stars{display:flex;gap:5px;}
+  .star{width:30px;height:30px;border-radius:6px;border:1.5px solid var(--mid);background:var(--navy);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .star:hover,.star.sel{background:var(--amber);border-color:var(--amber);color:var(--navy);}
+  .submit-rubric{margin-top:1rem;width:100%;background:var(--amber);color:var(--navy);border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;}
+  .rubric-thanks{display:none;text-align:center;color:var(--success);font-size:13px;margin-top:.6rem;}
+  footer{text-align:center;margin-top:2rem;font-size:11px;color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="room-label">GENERAL CHEMISTRY · GAME 2</div>
+    <div class="door-icon">🚪</div>
+    <h1>🔬 The VSEPR Escape Room</h1>
+    <p>Identify the molecular geometry to unlock each door and escape the lab</p>
+  </div>
+
+  <!-- VSEPR Reference Table -->
+  <div class="vsepr-panel">
+    <div class="vsepr-title">📋 VSEPR REFERENCE TABLE — Use this to solve each challenge</div>
+    <table id="vsepr-table">
+      <thead><tr><th>e⁻ Domains</th><th>Bonds</th><th>Lone Pairs</th><th>Geometry</th><th>Bond Angle</th></tr></thead>
+      <tbody>
+        <tr><td>2</td><td>2</td><td>0</td><td class="geom">Linear</td><td>180°</td></tr>
+        <tr><td>3</td><td>3</td><td>0</td><td class="geom">Trigonal planar</td><td>120°</td></tr>
+        <tr><td>3</td><td>2</td><td>1</td><td class="geom">Bent</td><td>&lt;120°</td></tr>
+        <tr><td>4</td><td>4</td><td>0</td><td class="geom">Tetrahedral</td><td>109.5°</td></tr>
+        <tr><td>4</td><td>3</td><td>1</td><td class="geom">Trigonal pyramidal</td><td>~107°</td></tr>
+        <tr><td>4</td><td>2</td><td>2</td><td class="geom">Bent</td><td>~104.5°</td></tr>
+        <tr><td>5</td><td>5</td><td>0</td><td class="geom">Trigonal bipyramidal</td><td>90°/120°</td></tr>
+        <tr><td>6</td><td>6</td><td>0</td><td class="geom">Octahedral</td><td>90°</td></tr>
+      </tbody>
+    </table>
+    <div class="vsepr-note">*The highlighted row matches the current challenge's clues</div>
+  </div>
+
+  <div class="progress-wrap" id="prog-wrap">
+    <div class="progress-label"><span id="door-label">Door 1 of 5</span><span id="score-label">Score: 0</span></div>
+    <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+    <div class="doors" id="doors"></div>
+  </div>
+
+  <div id="game-area">
+    <div class="challenge">
+      <div class="ch-header">
+        <span class="door-badge" id="door-badge">DOOR 1 — LOCKED 🔒</span>
+        <span class="ch-title" id="ch-title"></span>
+      </div>
+      <div class="hints" id="hints"></div>
+      <div class="opts-area">
+        <div class="opts-q">Which molecular geometry matches these clues?</div>
+        <div class="opts" id="opts"></div>
+        <div class="feedback" id="feedback">
+          <div class="fb-title" id="fb-title"></div>
+          <div class="geo-reveal">
+            <div>
+              <div class="geo-formula" id="fb-formula"></div>
+              <div class="geo-name" id="fb-geo"></div>
+              <div class="geo-angle" id="fb-angle"></div>
+            </div>
+            <div style="flex:1;display:flex;gap:.5rem;flex-wrap:wrap;">
+              <div style="background:var(--dark);border-radius:8px;padding:.5rem .8rem;text-align:center;">
+                <div id="fb-domains" style="font-size:1.4rem;font-weight:800;color:var(--teal)"></div>
+                <div style="font-size:10px;color:var(--muted)">e⁻ domains</div>
+              </div>
+              <div style="background:var(--dark);border-radius:8px;padding:.5rem .8rem;text-align:center;">
+                <div id="fb-lone" style="font-size:1.4rem;font-weight:800;color:var(--amber)"></div>
+                <div style="font-size:10px;color:var(--muted)">lone pairs</div>
+              </div>
+            </div>
+          </div>
+          <ul class="exp-list" id="fb-exp"></ul>
+          <div class="relevance" id="fb-rel"></div>
+          <button class="next-btn" id="next-btn"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="results" id="results">
+    <div style="font-size:2rem">🎉</div>
+    <div style="font-size:1.4rem;font-weight:700;margin:.5rem 0">You escaped the lab!</div>
+    <div class="res-score" id="res-score"></div>
+    <div id="res-label" style="color:var(--muted);font-size:14px;"></div>
+    <div class="grade-row" id="grade-row"></div>
+    <div class="disc">
+      <strong>Discussion questions:</strong><br>
+      1. Both NH₃ and H₂O have 4 electron domains. Why are their bond angles different (107° vs 104.5°)?<br>
+      2. BF₃ is trigonal planar but NF₃ is trigonal pyramidal — same number of atoms, different geometry. Explain.<br>
+      3. CO₂ is linear and non-polar, but SO₂ is bent and polar. How does VSEPR explain this difference?
+    </div>
+    <button class="restart-btn" onclick="restart()">Play again</button>
+  </div>
+
+  <div class="rubric" id="rubric">
+    <h3>📋 Game Evaluation Rubric</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:1rem">Rate this game (1 = poor · 5 = excellent)</p>
+    <div id="rubric-rows"></div>
+    <button class="submit-rubric" onclick="submitRubric()">Submit evaluation</button>
+    <div class="rubric-thanks" id="rubric-thanks">✓ Thank you — your evaluation has been recorded.</div>
+  </div>
+
+  <footer></footer>
+</div>
+
+<script>
+const CHALLENGES = [
+  { formula:"CO₂", name:"Carbon dioxide", ve:16, veCalc:"C(4) + O×2(12) = 16", domains:2, lone:0, bonds:2, tableRow:0,
+    geometry:"Linear", angle:"180°", ans:0,
+    opts:["Linear","Bent","Trigonal planar","Tetrahedral"],
+    exp:["2 electron domains around C, 0 lone pairs → electron geometry = linear",
+         "Each C=O double bond counts as ONE electron domain (VSEPR rule)",
+         "Bond angle = 180°: the two O atoms are on opposite sides of C",
+         "Symmetrical → net dipole = 0, even though individual C=O bonds are polar"],
+    discipline:"CO₂ is a product of cellular respiration. Its linear geometry allows efficient diffusion across lipid bilayers." },
+  { formula:"BF₃", name:"Boron trifluoride", ve:24, veCalc:"B(3) + F×3(21) = 24", domains:3, lone:0, bonds:3, tableRow:1,
+    geometry:"Trigonal planar", angle:"120°", ans:1,
+    opts:["Trigonal pyramidal","Trigonal planar","Tetrahedral","Linear"],
+    exp:["3 electron domains around B, 0 lone pairs → trigonal planar",
+         "All 3 F atoms lie in the same plane as B — 120° apart",
+         "B has only 6 electrons (incomplete octet) — no lone pairs",
+         "BF₃ is a Lewis acid: accepts electron pairs using its empty p orbital"],
+    discipline:"Lewis acid-base chemistry: BF₃ accepts lone pairs from drugs and biomolecules — important in coordination chemistry." },
+  { formula:"CH₄", name:"Methane", ve:8, veCalc:"C(4) + H×4(4) = 8", domains:4, lone:0, bonds:4, tableRow:3,
+    geometry:"Tetrahedral", angle:"109.5°", ans:2,
+    opts:["Linear","Trigonal planar","Tetrahedral","Bent"],
+    exp:["4 electron domains, 0 lone pairs → perfect tetrahedral geometry",
+         "Bond angle = 109.5° — maximises distance between 4 bonding pairs",
+         "sp³ hybridisation: C uses all four hybrid orbitals to bond with H",
+         "Tetrahedral carbon is the foundation of all organic and pharmaceutical chemistry"],
+    discipline:"sp³ carbon forms the backbone of all drug molecules. Tetrahedral geometry determines stereochemistry and receptor binding." },
+  { formula:"NH₃", name:"Ammonia", ve:8, veCalc:"N(5) + H×3(3) = 8", domains:4, lone:1, bonds:3, tableRow:4,
+    geometry:"Trigonal pyramidal", angle:"~107°", ans:3,
+    opts:["Tetrahedral","Trigonal planar","Linear","Trigonal pyramidal"],
+    exp:["4 electron domains (3 bonds + 1 lone pair) → base electron geometry = tetrahedral",
+         "Molecular geometry describes ATOMS only: 3 H below N → trigonal pyramidal",
+         "Lone pair repels bonding pairs more strongly → angle compressed to ~107°",
+         "Key rule: electron geometry ≠ molecular geometry when lone pairs are present"],
+    discipline:"The lone pair on N makes NH₃ a base — it accepts H⁺. This geometry is critical in amino acid side chains and drug design." },
+  { formula:"H₂O", name:"Water", ve:8, veCalc:"H×2(2) + O(6) = 8", domains:4, lone:2, bonds:2, tableRow:5,
+    geometry:"Bent", angle:"~104.5°", ans:1,
+    opts:["Linear","Bent","Trigonal pyramidal","Tetrahedral"],
+    exp:["4 electron domains (2 bonds + 2 lone pairs) → electron geometry = tetrahedral",
+         "2 lone pairs compress bond angle further than NH₃: 104.5° vs 107°",
+         "Molecular geometry = BENT (V-shaped) — only H–O–H atoms count",
+         "2 lone pairs + polar O–H bonds → large net dipole → strong H-bonding"],
+    discipline:"Water's bent geometry creates a large dipole moment (1.85 D), making it the universal biological solvent." },
+];
+
+const TABLE_ROWS = document.querySelectorAll('#vsepr-table tbody tr');
+let current = 0, score = 0;
+
+function buildDoors(){
+  const c=document.getElementById('doors'); c.innerHTML='';
+  CHALLENGES.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='door-dot'+(i<current?' unlocked':i===current?' current':'');
+    d.textContent=i<current?'✓':i+1;
+    c.appendChild(d);
+  });
+}
+
+function highlightRow(rowIdx){
+  TABLE_ROWS.forEach((r,i)=>r.classList.toggle('highlight',i===rowIdx));
+}
+
+function renderChallenge(){
+  if(current>=CHALLENGES.length){showResults();return;}
+  const c=CHALLENGES[current];
+  document.getElementById('door-label').textContent=`Door ${current+1} of ${CHALLENGES.length}`;
+  document.getElementById('score-label').textContent=`Score: ${score}`;
+  document.getElementById('prog-fill').style.width=`${(current/CHALLENGES.length)*100}%`;
+  document.getElementById('door-badge').className='door-badge';
+  document.getElementById('door-badge').textContent=`DOOR ${current+1} — LOCKED 🔒`;
+  document.getElementById('ch-title').textContent=`${c.formula} · ${c.name}`;
+  buildDoors();
+  highlightRow(c.tableRow);
+
+  document.getElementById('hints').innerHTML=`
+    <div class="hint formula"><div class="hint-label">MOLECULAR FORMULA</div>
+      <div class="hint-val">${c.formula}</div><div class="hint-sub">${c.name}</div></div>
+    <div class="hint ve"><div class="hint-label">TOTAL VALENCE ELECTRONS</div>
+      <div class="hint-val">${c.ve}</div><div class="hint-sub">${c.veCalc}</div></div>
+    <div class="hint lp"><div class="hint-label">LONE PAIRS ON CENTRAL ATOM</div>
+      <div class="hint-val">${c.lone}</div><div class="hint-sub">${c.lone===0?'No lone pairs':c.lone===1?'1 lone pair':'2 lone pairs'}</div></div>`;
+
+  const fb=document.getElementById('feedback'); fb.className='feedback';
+  document.getElementById('next-btn').className='next-btn';
+  const opts=document.getElementById('opts'); opts.innerHTML='';
+  ['A','B','C','D'].forEach((lbl,i)=>{
+    const b=document.createElement('button');
+    b.className='opt';
+    b.innerHTML=`<span class="opt-lbl">${lbl}</span>${c.opts[i]}`;
+    b.onclick=()=>answer(i,b);
+    opts.appendChild(b);
+  });
+}
+
+function answer(i,btn){
+  const c=CHALLENGES[current];
+  const correct=i===c.ans;
+  if(correct)score++;
+  document.querySelectorAll('.opt').forEach((b,idx)=>{
+    b.disabled=true;
+    if(idx===c.ans)b.classList.add('correct');
+    else if(idx===i&&!correct)b.classList.add('wrong');
+  });
+  const fb=document.getElementById('feedback');
+  fb.className='feedback show '+(correct?'ok':'bad');
+  document.getElementById('fb-title').textContent=correct?`✓ Door ${current+1} unlocked!`:`✗ Incorrect — correct geometry: ${c.geometry}`;
+  document.getElementById('fb-formula').textContent=c.formula;
+  document.getElementById('fb-geo').textContent=c.geometry;
+  document.getElementById('fb-angle').textContent=`Bond angle: ${c.angle}`;
+  document.getElementById('fb-domains').textContent=c.domains;
+  document.getElementById('fb-lone').textContent=c.lone;
+  document.getElementById('fb-exp').innerHTML=c.exp.map(e=>`<li>${e}</li>`).join('');
+  document.getElementById('fb-rel').innerHTML=`<strong>Relevance:</strong> ${c.discipline}`;
+  document.getElementById('door-badge').className='door-badge'+(correct?' open':'');
+  document.getElementById('door-badge').textContent=correct?`DOOR ${current+1} UNLOCKED ✓`:`DOOR ${current+1} — LOCKED 🔒`;
+  const nb=document.getElementById('next-btn');
+  nb.className='next-btn show';
+  nb.textContent=current<CHALLENGES.length-1?`Advance to door ${current+2} →`:'Complete escape →';
+}
+
+document.getElementById('next-btn').onclick=()=>{current++;renderChallenge();};
+
+function showResults(){
+  document.getElementById('game-area').style.display='none';
+  document.getElementById('prog-wrap').style.display='none';
+  TABLE_ROWS.forEach(r=>r.classList.remove('highlight'));
+  const pct=Math.round(score/CHALLENGES.length*100);
+  document.getElementById('res-score').textContent=`${score} / ${CHALLENGES.length}`;
+  document.getElementById('res-label').textContent=`${pct}% — ${pct>=80?'Outstanding':pct>=60?'Excellent':pct>=40?'Good':'Keep practising'}`;
+  const grades=[{s:'5/5',p:'100%',l:'Outstanding',c:'#059669'},{s:'4/5',p:'80%',l:'Excellent',c:'#0891B2'},{s:'3/5',p:'60%',l:'Good',c:'#F59E0B'},{s:'1-2/5',p:'20-40%',l:'Keep studying',c:'#DC2626'}];
+  document.getElementById('grade-row').innerHTML=grades.map(g=>`<div class="grade-card" style="border-color:${g.c};color:${g.c};background:#0F1923"><strong>${g.s}</strong><br>${g.p} — ${g.l}</div>`).join('');
+  document.getElementById('results').className='results show';
+  document.getElementById('rubric').style.display='block';
+  buildRubric();
+}
+
+function buildRubric(){
+  const dims=[['Scientific accuracy','Were the VSEPR clues and explanations factually correct?'],['Conceptual clarity','Were the clues and room layout clear?'],['Disciplinary relevance','Did the game connect VSEPR to your major?'],['Difficulty calibration','Was the challenge level appropriate?'],['Answer feedback quality','Did explanations help you understand the geometry?']];
+  document.getElementById('rubric-rows').innerHTML=dims.map((d,di)=>`<div class="rubric-row"><div class="rubric-label"><div class="rubric-title">${d[0]}</div><div class="rubric-desc">${d[1]}</div></div><div class="rubric-stars">${[1,2,3,4,5].map(n=>`<div class="star" onclick="selectStar(${di},${n},this)">${n}</div>`).join('')}</div></div>`).join('');
+}
+
+function selectStar(dim,val,el){el.closest('.rubric-stars').querySelectorAll('.star').forEach(s=>s.classList.remove('sel'));el.classList.add('sel');}
+function submitRubric(){document.getElementById('rubric-thanks').style.display='block';document.querySelector('.submit-rubric').disabled=true;}
+
+function restart(){
+  current=0;score=0;
+  document.getElementById('results').className='results';
+  document.getElementById('rubric').style.display='none';
+  document.getElementById('game-area').style.display='block';
+  document.getElementById('prog-wrap').style.display='block';
+  renderChallenge();
+}
+
+renderChallenge();
+</script>
+</body>
+</html>
