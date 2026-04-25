@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Periodic Table Treasure Hunt — Game 1</title>
+<style>
+  :root {
+    --navy: #0F2044; --teal: #0D9488; --amber: #F59E0B;
+    --acid: #7F1D1D; --acid-fr: #DC2626; --acid-hl: #FCA5A5;
+    --success: #059669; --muted: #94A3B8; --dark: #132038;
+    --mid: #1E3A5F; --white: #FFFFFF; --bg: #0D1117;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--white); min-height: 100vh; }
+  .container { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+
+  /* Header */
+  .header { text-align: center; margin-bottom: 2rem; padding: 2rem 1rem; background: linear-gradient(135deg, var(--navy), var(--dark)); border-radius: 16px; border: 1px solid var(--teal); }
+  .badge { display: inline-block; background: var(--teal); color: white; font-size: 11px; font-weight: 700; letter-spacing: 1px; padding: 4px 14px; border-radius: 20px; margin-bottom: 1rem; }
+  .header h1 { font-size: clamp(1.6rem, 5vw, 2.6rem); font-weight: 800; margin-bottom: .5rem; }
+  .header p { color: var(--muted); font-size: 14px; }
+  .stats { display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem; flex-wrap: wrap; }
+  .stat { background: var(--mid); border: 1px solid var(--amber); border-radius: 10px; padding: .5rem 1.2rem; text-align: center; }
+  .stat-val { font-size: 1.4rem; font-weight: 700; color: var(--amber); }
+  .stat-lbl { font-size: 11px; color: var(--muted); }
+
+  /* Progress */
+  .progress-wrap { margin-bottom: 1.5rem; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .progress-bar { height: 6px; background: var(--dark); border-radius: 3px; }
+  .progress-fill { height: 100%; border-radius: 3px; background: var(--teal); transition: width .4s; }
+  .dots { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
+  .dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; border: 2px solid var(--mid); color: var(--muted); background: var(--dark); transition: all .3s; }
+  .dot.done { background: var(--success); border-color: var(--success); color: white; }
+  .dot.current { background: var(--acid-fr); border-color: var(--acid-fr); color: white; }
+
+  /* Clue card */
+  .clue-card { background: var(--dark); border: 2px solid var(--mid); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .clue-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .clue-badge { background: var(--acid-fr); color: white; font-size: 11px; font-weight: 700; padding: 3px 12px; border-radius: 20px; letter-spacing: .5px; }
+  .topic-badge { background: var(--mid); color: var(--amber); font-size: 11px; padding: 3px 10px; border-radius: 20px; }
+  .clue-text { font-size: 15px; line-height: 1.7; color: var(--white); border-left: 3px solid var(--teal); padding-left: 1rem; }
+  .clue-label { font-weight: 700; color: var(--teal); }
+  .question-label { text-align: center; font-size: 15px; font-weight: 700; color: var(--amber); font-style: italic; margin: 1.2rem 0 .8rem; }
+
+  /* Options grid */
+  .opts { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+  @media(max-width:500px){ .opts { grid-template-columns: 1fr; } }
+  .opt { background: var(--mid); border: 2px solid #2D4A6E; border-radius: 12px; padding: 1rem 1.2rem; cursor: pointer; font-size: 14px; color: var(--white); text-align: left; transition: all .2s; display: flex; align-items: center; gap: 10px; }
+  .opt:hover:not(:disabled) { border-color: var(--teal); background: #1a3a5f; }
+  .opt:disabled { cursor: not-allowed; }
+  .opt.correct { background: #032B1A; border-color: var(--success); color: #6EE7B7; }
+  .opt.wrong { background: #3D0A0A; border-color: var(--acid-fr); color: #FCA5A5; }
+  .opt-label { width: 28px; height: 28px; border-radius: 50%; background: #2D4A6E; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+  .opt.correct .opt-label { background: var(--success); }
+  .opt.wrong .opt-label { background: var(--acid-fr); }
+
+  /* Feedback */
+  .feedback { margin-top: 1.2rem; border-radius: 12px; padding: 1.2rem; display: none; }
+  .feedback.show { display: block; }
+  .feedback.ok { background: #032B1A; border: 1px solid var(--success); }
+  .feedback.bad { background: #3D0A0A; border: 1px solid var(--acid-fr); }
+  .fb-title { font-weight: 700; font-size: 15px; margin-bottom: .5rem; }
+  .feedback.ok .fb-title { color: #6EE7B7; }
+  .feedback.bad .fb-title { color: #FCA5A5; }
+
+  /* Element card in feedback */
+  .elem-card { display: flex; gap: 1rem; align-items: center; background: var(--dark); border-radius: 10px; padding: 1rem; margin: .8rem 0; flex-wrap: wrap; }
+  .elem-box { width: 72px; height: 72px; background: var(--navy); border: 2px solid var(--teal); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
+  .elem-num { font-size: 12px; color: var(--muted); }
+  .elem-sym { font-size: 28px; font-weight: 800; color: white; line-height: 1; }
+  .elem-mass { font-size: 11px; color: var(--muted); }
+  .elem-info { flex: 1; }
+  .elem-name { font-size: 16px; font-weight: 700; color: var(--teal); }
+  .elem-grp { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .elem-conf { font-size: 13px; color: var(--amber); font-weight: 600; margin-top: 4px; }
+  .exp-list { list-style: none; padding: 0; margin-top: .8rem; }
+  .exp-list li { display: flex; gap: 8px; font-size: 13px; color: var(--white); line-height: 1.5; margin-bottom: 6px; }
+  .exp-list li::before { content: '→'; color: var(--amber); flex-shrink: 0; }
+
+  /* Next button */
+  .next-btn { display: none; width: 100%; margin-top: 1rem; background: var(--teal); color: white; border: none; border-radius: 10px; padding: 13px; font-size: 15px; font-weight: 700; cursor: pointer; transition: opacity .2s; }
+  .next-btn:hover { opacity: .9; }
+  .next-btn.show { display: block; }
+
+  /* Results */
+  .results { display: none; text-align: center; padding: 2.5rem 1.5rem; background: var(--dark); border-radius: 16px; border: 2px solid var(--success); }
+  .results.show { display: block; }
+  .result-score { font-size: 3.5rem; font-weight: 800; color: var(--amber); margin: .5rem 0; }
+  .result-label { font-size: 16px; color: var(--muted); margin-bottom: 1.5rem; }
+  .grade-cards { display: flex; gap: .75rem; justify-content: center; flex-wrap: wrap; margin: 1.5rem 0; }
+  .grade-card { padding: .7rem 1.2rem; border-radius: 10px; font-size: 13px; border: 2px solid; }
+  .disc { background: #032B1A; border-color: var(--teal); color: #6EE7B7; margin-top: 1rem; font-size: 13px; line-height: 1.6; text-align: left; padding: 1rem; border-radius: 10px; }
+  .disc strong { color: var(--amber); }
+  .restart-btn { margin-top: 1.5rem; background: var(--navy); border: 2px solid var(--teal); color: white; padding: 11px 28px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; }
+
+  /* Rubric */
+  .rubric { margin-top: 2rem; background: var(--dark); border: 1px solid var(--mid); border-radius: 16px; padding: 1.5rem; }
+  .rubric h3 { color: var(--teal); font-size: 16px; margin-bottom: 1rem; }
+  .rubric-row { display: flex; align-items: center; justify-content: space-between; padding: .7rem 0; border-bottom: 1px solid var(--mid); flex-wrap: wrap; gap: .5rem; }
+  .rubric-row:last-child { border-bottom: none; }
+  .rubric-label { flex: 1; min-width: 160px; }
+  .rubric-title { font-size: 14px; font-weight: 600; color: white; }
+  .rubric-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .rubric-stars { display: flex; gap: 6px; }
+  .star { width: 32px; height: 32px; border-radius: 6px; border: 1.5px solid var(--mid); background: var(--navy); color: var(--muted); font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+  .star:hover, .star.sel { background: var(--amber); border-color: var(--amber); color: var(--navy); }
+  .submit-rubric { margin-top: 1rem; width: 100%; background: var(--amber); color: var(--navy); border: none; border-radius: 10px; padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .rubric-thanks { display: none; text-align: center; color: var(--success); font-size: 14px; margin-top: .75rem; }
+
+  footer { text-align: center; margin-top: 2rem; font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="badge">GENERAL CHEMISTRY · GAME 1</div>
+    <h1>🔬 Periodic Table Treasure Hunt</h1>
+    <p>Identify the mystery element from chemistry clues alone</p>
+    <div class="stats">
+      <div class="stat"><div class="stat-val" id="score">0</div><div class="stat-lbl">Score</div></div>
+      <div class="stat"><div class="stat-val">6</div><div class="stat-lbl">Clues</div></div>
+      <div class="stat"><div class="stat-val" id="pct">0%</div><div class="stat-lbl">Accuracy</div></div>
+    </div>
+  </div>
+
+  <div class="progress-wrap" id="prog-wrap">
+    <div class="progress-label"><span id="clue-label">Clue 1 of 6</span><span id="topic-label"></span></div>
+    <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+    <div class="dots" id="dots"></div>
+  </div>
+
+  <div id="game-area">
+    <div class="clue-card" id="clue-card">
+      <div class="clue-meta">
+        <span class="clue-badge" id="clue-badge">CLUE 1</span>
+        <span class="topic-badge" id="topic-badge"></span>
+      </div>
+      <div class="clue-text"><span class="clue-label">Mystery element: </span><span id="clue-text"></span></div>
+      <div class="question-label">Which element am I?</div>
+      <div class="opts" id="opts"></div>
+      <div class="feedback" id="feedback">
+        <div class="fb-title" id="fb-title"></div>
+        <div class="elem-card">
+          <div class="elem-box">
+            <div class="elem-num" id="fb-num"></div>
+            <div class="elem-sym" id="fb-sym"></div>
+            <div class="elem-mass" id="fb-mass"></div>
+          </div>
+          <div class="elem-info">
+            <div class="elem-name" id="fb-name"></div>
+            <div class="elem-grp" id="fb-grp"></div>
+            <div class="elem-conf" id="fb-conf"></div>
+          </div>
+        </div>
+        <ul class="exp-list" id="fb-exp"></ul>
+      </div>
+      <button class="next-btn" id="next-btn"></button>
+    </div>
+  </div>
+
+  <div class="results" id="results">
+    <div style="font-size:2rem">🏆</div>
+    <div class="result-score" id="res-score"></div>
+    <div class="result-label" id="res-label"></div>
+    <div class="grade-cards" id="grade-cards"></div>
+    <div class="disc">
+      <strong>Discussion questions:</strong><br>
+      1. Which periodic trend was hardest to identify from the clue alone — ionization energy, electronegativity, or electron configuration?<br>
+      2. How does the half-filled 3p³ subshell of phosphorus compare to nitrogen's — and why does only phosphorus expand its octet?<br>
+      3. Iron shows +2 and +3 states. Predict which oxidation state copper most commonly adopts and explain why.
+    </div>
+    <button class="restart-btn" onclick="restart()">Play again</button>
+  </div>
+
+  <div class="rubric" id="rubric" style="display:none">
+    <h3>📋 Game Evaluation Rubric</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:1rem">Rate this game after completing it (1 = poor · 5 = excellent)</p>
+    <div id="rubric-rows"></div>
+    <button class="submit-rubric" onclick="submitRubric()">Submit evaluation</button>
+    <div class="rubric-thanks" id="rubric-thanks">✓ Thank you — your evaluation has been recorded.</div>
+  </div>
+
+  <footer></footer>
+</div>
+
+<script>
+const CLUES = [
+  { topic:"Group & period · electron config · ionization energy",
+    clue:"I belong to Period 3 and Group 1. My electron configuration is [Ne] 3s¹ and I have 11 protons. Among all Period 3 elements I have the lowest first ionization energy (496 kJ/mol) because my single valence electron is shielded by a complete inner shell. I form a +1 ion by losing that electron.",
+    opts:["Potassium (K)","Lithium (Li)","Sodium (Na)","Magnesium (Mg)"], ans:2,
+    sym:"Na", num:"11", mass:"22.99", grp:"Group 1 · Period 3", conf:"[Ne] 3s¹",
+    exp:["Configuration [Ne] 3s¹ gives exactly 1 valence electron — the defining feature of Group 1",
+         "Lowest IE in Period 3 at 496 kJ/mol — shielding from complete n=2 shell weakens nuclear pull",
+         "Na⁺ is isoelectronic with neon: loses 3s¹ to achieve noble gas configuration",
+         "IE increases across Period 3 as nuclear charge rises with no added shielding"] },
+  { topic:"Group 14 · hybridization · covalent bonding",
+    clue:"I am Period 2, Group 14 with electronegativity 2.5 (Pauling scale). My ground-state configuration is [He] 2s² 2p². Through sp³ hybridization I form 4 equivalent tetrahedral bonds. I can also form sp² and sp hybrids to produce double and triple bonds. I have 4 valence electrons.",
+    opts:["Silicon (Si)","Nitrogen (N)","Boron (B)","Carbon (C)"], ans:3,
+    sym:"C", num:"6", mass:"12.01", grp:"Group 14 · Period 2", conf:"[He] 2s² 2p²",
+    exp:["Configuration [He] 2s² 2p² gives exactly 4 valence electrons → 4 bonds",
+         "sp³ hybridization produces 4 equivalent orbitals at 109.5° (tetrahedral geometry)",
+         "sp² → 120° trigonal planar (ethene); sp → 180° linear (ethyne)",
+         "EN = 2.5 on Pauling scale — intermediate, allowing both polar and nonpolar bonds"] },
+  { topic:"Group 17 · electronegativity · reduction potential",
+    clue:"I am a Period 3 halogen with 7 valence electrons and configuration [Ne] 3s² 3p⁵. I have the highest electronegativity in Period 3 (EN = 3.0, Pauling). My standard reduction potential is +1.36 V making me a powerful oxidizing agent. I need only 1 electron to complete my octet.",
+    opts:["Sulfur (S)","Chlorine (Cl)","Bromine (Br)","Fluorine (F)"], ans:1,
+    sym:"Cl", num:"17", mass:"35.45", grp:"Group 17 · Period 3", conf:"[Ne] 3s² 3p⁵",
+    exp:["Configuration [Ne] 3s² 3p⁵ gives 7 valence electrons — 1 short of a complete octet",
+         "Highest EN in Period 3 at 3.0; F is highest overall at 3.98",
+         "E° = +1.36 V: Cl₂ + 2e⁻ → 2Cl⁻ — strong tendency to gain electrons",
+         "Cl⁻ is isoelectronic with argon — stable noble gas configuration achieved"] },
+  { topic:"Period 4 transition metals · d-orbital config · oxidation states",
+    clue:"I am a Period 4 transition metal with atomic number 26 and configuration [Ar] 3d⁶ 4s². Because my 3d and 4s orbitals are close in energy I display multiple oxidation states — most commonly +2 (losing 4s²) and +3 (losing one 3d electron also). I am the most abundant transition metal in Earth's crust.",
+    opts:["Manganese (Mn)","Copper (Cu)","Iron (Fe)","Cobalt (Co)"], ans:2,
+    sym:"Fe", num:"26", mass:"55.85", grp:"Group 8 · Period 4", conf:"[Ar] 3d⁶ 4s²",
+    exp:["Configuration [Ar] 3d⁶ 4s² — 4s electrons are lost first giving Fe²⁺ = [Ar] 3d⁶",
+         "Fe³⁺ = [Ar] 3d⁵ — half-filled d subshell confers extra exchange energy stability",
+         "Multiple oxidation states arise from close 3d/4s energy — characteristic of transition metals",
+         "Most abundant transition metal in Earth's crust — ~5% by mass"] },
+  { topic:"Group 16 · VSEPR · bond angle · polarity",
+    clue:"I am Period 2, Group 16 with configuration [He] 2s² 2p⁴. My electronegativity is 3.5 — second only to fluorine. I have 2 bonding pairs and 2 lone pairs. According to VSEPR my lone pairs compress the bond angle to 104.5°, making my hydride molecule bent rather than linear.",
+    opts:["Sulfur (S)","Selenium (Se)","Nitrogen (N)","Oxygen (O)"], ans:3,
+    sym:"O", num:"8", mass:"16.00", grp:"Group 16 · Period 2", conf:"[He] 2s² 2p⁴",
+    exp:["Configuration [He] 2s² 2p⁴ gives 6 valence electrons: 2 bonds + 2 lone pairs",
+         "VSEPR: 4 electron pairs → tetrahedral arrangement, but 2 lone pairs give bent molecular geometry",
+         "Lone pair–lone pair repulsion > lone pair–bond pair > bond pair–bond pair → angle compressed to 104.5°",
+         "EN = 3.5 creates strongly polar O–H bonds → large net dipole → universal biological solvent"] },
+  { topic:"Group 15 · half-filled stability · octet expansion",
+    clue:"I am Period 3, Group 15 with configuration [Ne] 3s² 3p³. My three 3p orbitals are each half-filled giving extra exchange energy stability. Unlike my Period 2 analogue, I can expand my octet using available 3d orbitals, allowing oxidation states of +3 and +5. My oxyanion form carries three negative charges.",
+    opts:["Nitrogen (N)","Arsenic (As)","Phosphorus (P)","Sulfur (S)"], ans:2,
+    sym:"P", num:"15", mass:"30.97", grp:"Group 15 · Period 3", conf:"[Ne] 3s² 3p³",
+    exp:["Configuration [Ne] 3s² 3p³ — three half-filled 3p orbitals (one each in px, py, pz)",
+         "Period 3 has empty 3d orbitals available → octet expansion possible (e.g. PCl₅, H₃PO₄)",
+         "Oxidation states: +3 (PCl₃, phosphite) and +5 (PO₄³⁻, phosphate)",
+         "Phosphate (PO₄³⁻) carries 3 negative charges at physiological pH — key biochemical anion"] },
+];
+
+let current = 0, score = 0, answered = 0;
+
+function buildDots() {
+  const c = document.getElementById('dots');
+  c.innerHTML = '';
+  CLUES.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < current ? ' done' : i === current ? ' current' : '');
+    d.textContent = i < current ? '✓' : i + 1;
+    c.appendChild(d);
+  });
+}
+
+function renderClue() {
+  if (current >= CLUES.length) { showResults(); return; }
+  const c = CLUES[current];
+  document.getElementById('clue-label').textContent = `Clue ${current+1} of ${CLUES.length}`;
+  document.getElementById('topic-label').textContent = c.topic;
+  document.getElementById('clue-badge').textContent = `CLUE ${current+1}`;
+  document.getElementById('topic-badge').textContent = c.topic.split('·')[0].trim();
+  document.getElementById('clue-text').textContent = c.clue;
+  document.getElementById('prog-fill').style.width = `${(current/CLUES.length)*100}%`;
+  buildDots();
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback';
+  document.getElementById('next-btn').className = 'next-btn';
+  const opts = document.getElementById('opts');
+  opts.innerHTML = '';
+  const labels = ['A','B','C','D'];
+  c.opts.forEach((opt, i) => {
+    const b = document.createElement('button');
+    b.className = 'opt';
+    b.innerHTML = `<span class="opt-label">${labels[i]}</span>${opt}`;
+    b.onclick = () => answer(i, b);
+    opts.appendChild(b);
+  });
+}
+
+function answer(i, btn) {
+  const c = CLUES[current];
+  const correct = i === c.ans;
+  if (correct) score++;
+  answered++;
+  document.querySelectorAll('.opt').forEach((b, idx) => {
+    b.disabled = true;
+    if (idx === c.ans) b.classList.add('correct');
+    else if (idx === i && !correct) b.classList.add('wrong');
+  });
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback show ' + (correct ? 'ok' : 'bad');
+  document.getElementById('fb-title').textContent = correct ? `✓ Correct! The element is ${c.opts[c.ans]}` : `✗ Incorrect — the answer is ${c.opts[c.ans]}`;
+  document.getElementById('fb-num').textContent = c.num;
+  document.getElementById('fb-sym').textContent = c.sym;
+  document.getElementById('fb-mass').textContent = c.mass;
+  document.getElementById('fb-name').textContent = c.opts[c.ans];
+  document.getElementById('fb-grp').textContent = c.grp;
+  document.getElementById('fb-conf').textContent = c.conf;
+  const ul = document.getElementById('fb-exp');
+  ul.innerHTML = c.exp.map(e => `<li>${e}</li>`).join('');
+  document.getElementById('score').textContent = score;
+  document.getElementById('pct').textContent = `${Math.round(score/answered*100)}%`;
+  const nb = document.getElementById('next-btn');
+  nb.className = 'next-btn show';
+  nb.textContent = current < CLUES.length - 1 ? 'Next clue →' : 'See results →';
+}
+
+document.getElementById('next-btn').onclick = () => { current++; renderClue(); };
+
+function showResults() {
+  document.getElementById('game-area').style.display = 'none';
+  document.getElementById('prog-wrap').style.display = 'none';
+  const pct = Math.round(score/CLUES.length*100);
+  document.getElementById('res-score').textContent = `${score} / ${CLUES.length}`;
+  document.getElementById('res-label').textContent = `${pct}% — ${pct>=83?'Outstanding':pct>=67?'Excellent':pct>=50?'Good':'Keep practising'}`;
+  const grades = [
+    {s:'6/6',p:'100%',l:'Outstanding',c:'#059669'},{s:'5/6',p:'83%',l:'Excellent',c:'#0891B2'},
+    {s:'4/6',p:'67%',l:'Good',c:'#F59E0B'},{s:'1–3/6',p:'≤50%',l:'Keep reviewing',c:'#DC2626'}
+  ];
+  document.getElementById('grade-cards').innerHTML = grades.map(g =>
+    `<div class="grade-card" style="border-color:${g.c};color:${g.c};background:#0F1923"><strong>${g.s}</strong><br>${g.p} — ${g.l}</div>`).join('');
+  document.getElementById('results').className = 'results show';
+  document.getElementById('rubric').style.display = 'block';
+  buildRubric();
+}
+
+function buildRubric() {
+  const dims = [
+    ['Scientific accuracy','Were the chemistry clues factually correct?'],
+    ['Conceptual clarity','Were the clues clearly worded and unambiguous?'],
+    ['Disciplinary relevance','Did the game connect to your pharmacy / biochem / pre-med major?'],
+    ['Difficulty calibration','Was the challenge level appropriate for your course stage?'],
+    ['Answer feedback quality','Did the explanations help you understand the chemistry?'],
+  ];
+  const c = document.getElementById('rubric-rows');
+  c.innerHTML = dims.map((d,di) => `
+    <div class="rubric-row">
+      <div class="rubric-label"><div class="rubric-title">${d[0]}</div><div class="rubric-desc">${d[1]}</div></div>
+      <div class="rubric-stars">${[1,2,3,4,5].map(n=>`<div class="star" onclick="selectStar(${di},${n},this)">${n}</div>`).join('')}</div>
+    </div>`).join('');
+}
+
+function selectStar(dim, val, el) {
+  el.closest('.rubric-stars').querySelectorAll('.star').forEach(s => s.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+function submitRubric() {
+  document.getElementById('rubric-thanks').style.display = 'block';
+  document.querySelector('.submit-rubric').disabled = true;
+}
+
+function restart() {
+  current = 0; score = 0; answered = 0;
+  document.getElementById('score').textContent = '0';
+  document.getElementById('pct').textContent = '0%';
+  document.getElementById('results').className = 'results';
+  document.getElementById('rubric').style.display = 'none';
+  document.getElementById('game-area').style.display = 'block';
+  document.getElementById('prog-wrap').style.display = 'block';
+  renderClue();
+}
+
+renderClue();
+</script>
+</body>
+</html>
