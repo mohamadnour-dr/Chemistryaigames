@@ -5,362 +5,916 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Periodic Table Treasure Hunt — Game 1</title>
 <style>
-  :root {
-    --navy: #0F2044; --teal: #0D9488; --amber: #F59E0B;
-    --acid: #7F1D1D; --acid-fr: #DC2626; --acid-hl: #FCA5A5;
-    --success: #059669; --muted: #94A3B8; --dark: #132038;
-    --mid: #1E3A5F; --white: #FFFFFF; --bg: #0D1117;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--white); min-height: 100vh; }
-  .container { max-width: 860px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Rajdhani:wght@400;600;700&display=swap');
 
-  /* Header */
-  .header { text-align: center; margin-bottom: 2rem; padding: 2rem 1rem; background: linear-gradient(135deg, var(--navy), var(--dark)); border-radius: 16px; border: 1px solid var(--teal); }
-  .badge { display: inline-block; background: var(--teal); color: white; font-size: 11px; font-weight: 700; letter-spacing: 1px; padding: 4px 14px; border-radius: 20px; margin-bottom: 1rem; }
-  .header h1 { font-size: clamp(1.6rem, 5vw, 2.6rem); font-weight: 800; margin-bottom: .5rem; }
-  .header p { color: var(--muted); font-size: 14px; }
-  .stats { display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem; flex-wrap: wrap; }
-  .stat { background: var(--mid); border: 1px solid var(--amber); border-radius: 10px; padding: .5rem 1.2rem; text-align: center; }
-  .stat-val { font-size: 1.4rem; font-weight: 700; color: var(--amber); }
-  .stat-lbl { font-size: 11px; color: var(--muted); }
+:root {
+  --bg:#060A12; --surface:#0D1421; --card:#111C2D; --border:#1E3258;
+  --teal:#00E5CC; --amber:#F5A623; --red:#F53A3A; --green:#22C784;
+  --blue:#3E8FFF; --muted:#4A5F7C; --text:#CDD5E0; --white:#F0F6FF;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Rajdhani','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow:hidden;}
 
-  /* Progress */
-  .progress-wrap { margin-bottom: 1.5rem; }
-  .progress-label { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
-  .progress-bar { height: 6px; background: var(--dark); border-radius: 3px; }
-  .progress-fill { height: 100%; border-radius: 3px; background: var(--teal); transition: width .4s; }
-  .dots { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
-  .dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; border: 2px solid var(--mid); color: var(--muted); background: var(--dark); transition: all .3s; }
-  .dot.done { background: var(--success); border-color: var(--success); color: white; }
-  .dot.current { background: var(--acid-fr); border-color: var(--acid-fr); color: white; }
+/* SCREENS */
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .4s ease;overflow-y:auto;overflow-x:hidden;}
+.screen.active{opacity:1;pointer-events:all;}
 
-  /* Clue card */
-  .clue-card { background: var(--dark); border: 2px solid var(--mid); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; }
-  .clue-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; flex-wrap: wrap; }
-  .clue-badge { background: var(--acid-fr); color: white; font-size: 11px; font-weight: 700; padding: 3px 12px; border-radius: 20px; letter-spacing: .5px; }
-  .topic-badge { background: var(--mid); color: var(--amber); font-size: 11px; padding: 3px 10px; border-radius: 20px; }
-  .clue-text { font-size: 15px; line-height: 1.7; color: var(--white); border-left: 3px solid var(--teal); padding-left: 1rem; }
-  .clue-label { font-weight: 700; color: var(--teal); }
-  .question-label { text-align: center; font-size: 15px; font-weight: 700; color: var(--amber); font-style: italic; margin: 1.2rem 0 .8rem; }
+/* ── INTRO ── */
+#s-intro{background:radial-gradient(ellipse at 30% 40%,#0F2040 0%,#060A12 65%);align-items:center;justify-content:center;text-align:center;gap:14px;padding:24px;}
+.particles{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
+.particle{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:rgba(0,229,204,.35);font-family:'Rajdhani',sans-serif;animation:float-p 7s ease-in-out infinite;}
+@keyframes float-p{0%{transform:translateY(100vh) scale(0);opacity:0}20%{opacity:.7}80%{opacity:.3}100%{transform:translateY(-30px) scale(1);opacity:0}}
+.intro-badge{background:rgba(0,229,204,.1);border:1px solid var(--teal);color:var(--teal);font-size:10px;font-weight:700;letter-spacing:3px;padding:5px 18px;border-radius:20px;}
+.intro-title{font-family:'Cinzel Decorative',serif;font-size:clamp(1.6rem,6vw,3.2rem);font-weight:700;color:var(--white);line-height:1.2;text-shadow:0 0 40px rgba(0,229,204,.3);}
+.intro-title span{color:var(--amber);}
+.intro-sub{font-size:15px;color:var(--muted);max-width:460px;line-height:1.65;}
+.intro-feats{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;max-width:500px;}
+.feat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:9px 14px;font-size:13px;display:flex;align-items:center;gap:8px;}
+.start-btn{background:linear-gradient(135deg,var(--teal),#0891B2);color:#060A12;border:none;border-radius:14px;padding:15px 46px;font-size:16px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .2s;box-shadow:0 0 30px rgba(0,229,204,.3);}
+.start-btn:hover{transform:translateY(-2px);box-shadow:0 0 50px rgba(0,229,204,.5);}
 
-  /* Options grid */
-  .opts { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
-  @media(max-width:500px){ .opts { grid-template-columns: 1fr; } }
-  .opt { background: var(--mid); border: 2px solid #2D4A6E; border-radius: 12px; padding: 1rem 1.2rem; cursor: pointer; font-size: 14px; color: var(--white); text-align: left; transition: all .2s; display: flex; align-items: center; gap: 10px; }
-  .opt:hover:not(:disabled) { border-color: var(--teal); background: #1a3a5f; }
-  .opt:disabled { cursor: not-allowed; }
-  .opt.correct { background: #032B1A; border-color: var(--success); color: #6EE7B7; }
-  .opt.wrong { background: #3D0A0A; border-color: var(--acid-fr); color: #FCA5A5; }
-  .opt-label { width: 28px; height: 28px; border-radius: 50%; background: #2D4A6E; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
-  .opt.correct .opt-label { background: var(--success); }
-  .opt.wrong .opt-label { background: var(--acid-fr); }
+/* ── MAP ── */
+#s-map{background:var(--bg);}
+.map-topbar{display:flex;align-items:center;justify-content:space-between;padding:11px 18px;background:rgba(13,20,33,.92);border-bottom:1px solid var(--border);backdrop-filter:blur(10px);flex-shrink:0;flex-wrap:wrap;gap:8px;}
+.map-title{font-family:'Cinzel Decorative',serif;font-size:14px;color:var(--teal);}
+.map-stats{display:flex;gap:14px;}
+.mstat-val{font-size:17px;font-weight:700;color:var(--amber);text-align:center;}
+.mstat-lbl{font-size:9px;color:var(--muted);letter-spacing:1px;text-align:center;}
+.map-wrapper{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 10px;gap:10px;min-height:0;}
+#map-svg{width:100%;max-width:820px;height:auto;border-radius:14px;border:1px solid var(--border);filter:drop-shadow(0 8px 32px rgba(0,0,0,.5));}
+.inv-bar{display:flex;align-items:center;gap:10px;background:rgba(13,20,33,.95);border:1px solid var(--border);border-radius:12px;padding:9px 14px;max-width:820px;width:100%;flex-wrap:wrap;}
+.inv-lbl{font-size:11px;color:var(--muted);letter-spacing:1px;font-weight:700;flex-shrink:0;}
+#inv-slots{display:flex;gap:8px;flex-wrap:wrap;}
+.inv-slot{width:46px;height:50px;border:1.5px dashed var(--border);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:var(--muted);transition:all .3s;}
+.inv-slot.filled{border-style:solid;border-color:var(--teal);background:rgba(0,229,204,.07);animation:elem-in .4s cubic-bezier(.34,1.56,.64,1);}
+.inv-slot .isn{font-size:8px;color:var(--muted);}
+.inv-slot .iss{font-size:18px;font-weight:700;color:var(--teal);line-height:1;}
+.inv-slot .isl{font-size:7px;color:var(--muted);}
+@keyframes elem-in{0%{transform:scale(0) rotate(-12deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
+.go-btn{max-width:820px;width:100%;padding:13px;background:linear-gradient(135deg,var(--teal),#0891B2);color:#060A12;border:none;border-radius:10px;font-size:15px;font-weight:700;font-family:'Rajdhani',sans-serif;letter-spacing:1px;cursor:pointer;transition:all .2s;}
+.go-btn:hover{opacity:.9;transform:translateY(-1px);}
+.go-btn:disabled{opacity:.45;cursor:not-allowed;transform:none;}
 
-  /* Feedback */
-  .feedback { margin-top: 1.2rem; border-radius: 12px; padding: 1.2rem; display: none; }
-  .feedback.show { display: block; }
-  .feedback.ok { background: #032B1A; border: 1px solid var(--success); }
-  .feedback.bad { background: #3D0A0A; border: 1px solid var(--acid-fr); }
-  .fb-title { font-weight: 700; font-size: 15px; margin-bottom: .5rem; }
-  .feedback.ok .fb-title { color: #6EE7B7; }
-  .feedback.bad .fb-title { color: #FCA5A5; }
+/* ── QUIZ ── */
+#s-quiz{background:var(--bg);}
+.quiz-theme-bar{padding:18px 16px 12px;text-align:center;flex-shrink:0;}
+.qtb-icon{font-size:2.2rem;margin-bottom:3px;}
+.qtb-name{font-size:20px;font-weight:700;color:var(--white);}
+.qtb-sub{font-size:11px;letter-spacing:2px;color:rgba(255,255,255,.5);text-transform:uppercase;}
+.quiz-body{flex:1;overflow-y:auto;padding:0 14px 32px;display:flex;flex-direction:column;align-items:center;gap:12px;}
+.rl-box{width:100%;max-width:700px;background:var(--card);border:1px solid rgba(245,166,35,.3);border-radius:13px;padding:15px;display:flex;gap:12px;align-items:flex-start;}
+.rl-ico{font-size:1.6rem;flex-shrink:0;}
+.rl-lbl{font-size:10px;letter-spacing:2px;color:var(--amber);font-weight:700;margin-bottom:5px;}
+.rl-txt{font-size:13.5px;line-height:1.65;color:var(--text);}
+.clue-card-q{width:100%;max-width:700px;background:var(--card);border:2px solid var(--border);border-radius:13px;padding:16px;}
+.clue-meta-q{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.clue-badge-q{background:var(--red);color:white;font-size:10px;font-weight:700;padding:3px 11px;border-radius:20px;letter-spacing:1px;}
+.topic-badge-q{background:var(--border);color:var(--amber);font-size:10px;padding:3px 9px;border-radius:20px;}
+.clue-text-q{font-size:14px;line-height:1.7;color:var(--white);border-left:3px solid var(--teal);padding-left:11px;}
+.clue-lbl-q{font-weight:700;color:var(--teal);}
+.q-label-q{text-align:center;font-size:15px;font-weight:700;color:var(--amber);font-style:italic;margin:12px 0 8px;}
+.opts-q{display:grid;grid-template-columns:1fr 1fr;gap:9px;width:100%;max-width:700px;}
+@media(max-width:500px){.opts-q{grid-template-columns:1fr;}}
+.opt-q{background:var(--card);border:2px solid var(--border);border-radius:11px;padding:13px 15px;cursor:pointer;font-size:14px;color:var(--white);text-align:left;transition:all .2s;display:flex;align-items:center;gap:10px;font-family:'Rajdhani',sans-serif;font-weight:600;}
+.opt-q:hover:not(:disabled){border-color:var(--teal);background:rgba(0,229,204,.05);}
+.opt-q:disabled{cursor:not-allowed;}
+.opt-q.correct{background:#032B1A;border-color:var(--green);color:#6EE7B7;}
+.opt-q.wrong{background:#3D0A0A;border-color:var(--red);color:#FCA5A5;}
+.opt-lbl-q{width:26px;height:26px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;}
+.opt-q.correct .opt-lbl-q{background:var(--green);}
+.opt-q.wrong .opt-lbl-q{background:var(--red);}
+.feedback-q{width:100%;max-width:700px;border-radius:12px;padding:15px;display:none;}
+.feedback-q.show{display:block;}
+.feedback-q.ok{background:#032B1A;border:1px solid var(--green);}
+.feedback-q.bad{background:#3D0A0A;border:1px solid var(--red);}
+.fb-title-q{font-weight:700;font-size:15px;margin-bottom:7px;}
+.feedback-q.ok .fb-title-q{color:#6EE7B7;}
+.feedback-q.bad .fb-title-q{color:#FCA5A5;}
+.elem-card-q{display:flex;gap:12px;align-items:center;background:rgba(0,0,0,.2);border-radius:9px;padding:11px;margin:7px 0;flex-wrap:wrap;}
+.elem-box-q{width:68px;height:68px;background:var(--surface);border:2px solid var(--teal);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;}
+.enq{font-size:11px;color:var(--muted);}
+.esq{font-size:25px;font-weight:800;color:white;line-height:1;}
+.emq{font-size:10px;color:var(--muted);}
+.elem-info-q{flex:1;}
+.enaq{font-size:16px;font-weight:700;color:var(--teal);}
+.egrp{font-size:12px;color:var(--muted);margin-top:2px;}
+.ecnf{font-size:13px;color:var(--amber);font-weight:600;margin-top:4px;}
+.exp-list-q{list-style:none;padding:0;margin-top:7px;}
+.exp-list-q li{display:flex;gap:8px;font-size:13px;color:var(--text);line-height:1.5;margin-bottom:5px;}
+.exp-list-q li::before{content:'→';color:var(--amber);flex-shrink:0;}
+.next-btn-q{display:none;width:100%;max-width:700px;margin-top:6px;background:var(--teal);color:#060A12;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:700;font-family:'Rajdhani',sans-serif;cursor:pointer;letter-spacing:1px;transition:opacity .2s;}
+.next-btn-q:hover{opacity:.9;}
+.next-btn-q.show{display:block;}
 
-  /* Element card in feedback */
-  .elem-card { display: flex; gap: 1rem; align-items: center; background: var(--dark); border-radius: 10px; padding: 1rem; margin: .8rem 0; flex-wrap: wrap; }
-  .elem-box { width: 72px; height: 72px; background: var(--navy); border: 2px solid var(--teal); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
-  .elem-num { font-size: 12px; color: var(--muted); }
-  .elem-sym { font-size: 28px; font-weight: 800; color: white; line-height: 1; }
-  .elem-mass { font-size: 11px; color: var(--muted); }
-  .elem-info { flex: 1; }
-  .elem-name { font-size: 16px; font-weight: 700; color: var(--teal); }
-  .elem-grp { font-size: 12px; color: var(--muted); margin-top: 2px; }
-  .elem-conf { font-size: 13px; color: var(--amber); font-weight: 600; margin-top: 4px; }
-  .exp-list { list-style: none; padding: 0; margin-top: .8rem; }
-  .exp-list li { display: flex; gap: 8px; font-size: 13px; color: var(--white); line-height: 1.5; margin-bottom: 6px; }
-  .exp-list li::before { content: '→'; color: var(--amber); flex-shrink: 0; }
+/* ── FINALE ── */
+#s-finale{background:var(--bg);align-items:center;}
+.finale-header{text-align:center;padding:18px 14px 10px;flex-shrink:0;}
+.finale-title{font-family:'Cinzel Decorative',serif;font-size:clamp(1.1rem,4vw,1.9rem);color:var(--teal);margin-bottom:3px;}
+.finale-sub{font-size:13px;color:var(--muted);}
+.finale-inst{font-size:13px;color:var(--amber);background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:8px;padding:7px 14px;margin-top:8px;display:inline-block;transition:color .3s;}
+.pt-wrap{overflow-x:auto;padding:6px 12px;width:100%;}
+.pt-grid{display:grid;grid-template-columns:repeat(18,minmax(30px,38px));grid-template-rows:repeat(4,auto);gap:2px;margin:0 auto;width:max-content;}
+.pt-cell{width:100%;aspect-ratio:1;border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Rajdhani',sans-serif;cursor:default;transition:all .2s;position:relative;}
+.pt-cell .cn{font-size:7.5px;color:var(--muted);line-height:1;}
+.pt-cell .cs{font-size:13px;font-weight:700;line-height:1;color:var(--white);}
+.pt-cell.fc{background:var(--card);border:1px solid var(--border);}
+.pt-cell.tc{background:rgba(0,229,204,.04);border:2px dashed var(--teal);animation:pulse-e 2s ease-in-out infinite;cursor:pointer;}
+.pt-cell.tc:hover{background:rgba(0,229,204,.1);}
+.pt-cell.tc.placed{background:rgba(0,229,204,.12);border:2px solid var(--teal);animation:cell-p .5s cubic-bezier(.34,1.56,.64,1);cursor:default;}
+.pt-cell.tc.wshake{animation:shake .4s ease;}
+@keyframes pulse-e{0%,100%{box-shadow:0 0 5px rgba(0,229,204,.2)}50%{box-shadow:0 0 16px rgba(0,229,204,.6)}}
+@keyframes cell-p{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.shelf{display:flex;gap:9px;padding:11px 14px;background:var(--card);border:1px solid var(--border);border-radius:13px;flex-wrap:wrap;justify-content:center;max-width:580px;margin:6px auto;}
+.shelf-lbl{width:100%;font-size:10px;letter-spacing:2px;color:var(--muted);text-align:center;margin-bottom:2px;}
+.shelf-elem{width:54px;height:60px;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border:2px solid var(--teal);background:rgba(0,229,204,.07);transition:all .2s;}
+.shelf-elem:hover{transform:translateY(-3px);box-shadow:0 6px 18px rgba(0,229,204,.25);}
+.shelf-elem.sel{background:rgba(0,229,204,.18);border-color:var(--amber);box-shadow:0 0 18px rgba(245,166,35,.4);}
+.shelf-elem.used{opacity:.25;cursor:default;pointer-events:none;}
+.se-n{font-size:9px;color:var(--muted);}
+.se-s{font-size:21px;font-weight:700;color:var(--teal);line-height:1;}
+.se-nm{font-size:8px;color:var(--muted);}
 
-  /* Next button */
-  .next-btn { display: none; width: 100%; margin-top: 1rem; background: var(--teal); color: white; border: none; border-radius: 10px; padding: 13px; font-size: 15px; font-weight: 700; cursor: pointer; transition: opacity .2s; }
-  .next-btn:hover { opacity: .9; }
-  .next-btn.show { display: block; }
+/* Door */
+#door-overlay{position:fixed;inset:0;display:grid;grid-template-columns:1fr 1fr;z-index:100;pointer-events:none;}
+.door-panel{height:100%;background:linear-gradient(160deg,#0A1628,#111C2D);display:flex;align-items:center;justify-content:center;transition:transform 1.6s cubic-bezier(.77,0,.18,1);}
+.door-panel.left{border-right:2px solid var(--teal);}
+.door-panel.right{border-left:2px solid var(--teal);}
+.door-deco{display:flex;flex-direction:column;gap:12px;opacity:.5;}
+.door-sym{font-family:'Cinzel Decorative',serif;font-size:11px;color:var(--teal);letter-spacing:3px;writing-mode:vertical-rl;}
+.door-open .door-panel.left{transform:translateX(-100%);}
+.door-open .door-panel.right{transform:translateX(100%);}
 
-  /* Results */
-  .results { display: none; text-align: center; padding: 2.5rem 1.5rem; background: var(--dark); border-radius: 16px; border: 2px solid var(--success); }
-  .results.show { display: block; }
-  .result-score { font-size: 3.5rem; font-weight: 800; color: var(--amber); margin: .5rem 0; }
-  .result-label { font-size: 16px; color: var(--muted); margin-bottom: 1.5rem; }
-  .grade-cards { display: flex; gap: .75rem; justify-content: center; flex-wrap: wrap; margin: 1.5rem 0; }
-  .grade-card { padding: .7rem 1.2rem; border-radius: 10px; font-size: 13px; border: 2px solid; }
-  .disc { background: #032B1A; border-color: var(--teal); color: #6EE7B7; margin-top: 1rem; font-size: 13px; line-height: 1.6; text-align: left; padding: 1rem; border-radius: 10px; }
-  .disc strong { color: var(--amber); }
-  .restart-btn { margin-top: 1.5rem; background: var(--navy); border: 2px solid var(--teal); color: white; padding: 11px 28px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; }
-
-  /* Rubric */
-  .rubric { margin-top: 2rem; background: var(--dark); border: 1px solid var(--mid); border-radius: 16px; padding: 1.5rem; }
-  .rubric h3 { color: var(--teal); font-size: 16px; margin-bottom: 1rem; }
-  .rubric-row { display: flex; align-items: center; justify-content: space-between; padding: .7rem 0; border-bottom: 1px solid var(--mid); flex-wrap: wrap; gap: .5rem; }
-  .rubric-row:last-child { border-bottom: none; }
-  .rubric-label { flex: 1; min-width: 160px; }
-  .rubric-title { font-size: 14px; font-weight: 600; color: white; }
-  .rubric-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
-  .rubric-stars { display: flex; gap: 6px; }
-  .star { width: 32px; height: 32px; border-radius: 6px; border: 1.5px solid var(--mid); background: var(--navy); color: var(--muted); font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .15s; }
-  .star:hover, .star.sel { background: var(--amber); border-color: var(--amber); color: var(--navy); }
-  .submit-rubric { margin-top: 1rem; width: 100%; background: var(--amber); color: var(--navy); border: none; border-radius: 10px; padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; }
-  .rubric-thanks { display: none; text-align: center; color: var(--success); font-size: 14px; margin-top: .75rem; }
-
-  footer { text-align: center; margin-top: 2rem; font-size: 11px; color: var(--muted); }
+/* ── PRIZE ── */
+#s-prize{background:radial-gradient(ellipse at center,#07152A 0%,#060A12 70%);align-items:center;justify-content:center;text-align:center;padding:18px 14px;gap:10px;overflow-y:auto;}
+.prize-score{font-family:'Cinzel Decorative',serif;font-size:clamp(2rem,7vw,3.8rem);font-weight:700;color:var(--amber);}
+.prize-lbl{font-size:15px;color:var(--muted);}
+.sci-wrap{width:240px;height:318px;flex-shrink:0;}
+.sci-body{animation:sci-sway .56s ease-in-out infinite;}
+@keyframes sci-sway{0%,100%{transform:translate(0,0)}25%{transform:translate(-9px,-6px)}75%{transform:translate(9px,-6px)}}
+.sci-arm-l{transform-box:fill-box;transform-origin:100% 50%;animation:sal .56s ease-in-out infinite;}
+@keyframes sal{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(-82deg)}}
+.sci-arm-r{transform-box:fill-box;transform-origin:0% 50%;animation:sar .56s ease-in-out infinite;}
+@keyframes sar{0%,100%{transform:rotate(58deg)}50%{transform:rotate(4deg)}}
+.sci-leg-l{transform-box:fill-box;transform-origin:50% 0%;animation:sll .56s ease-in-out infinite;}
+@keyframes sll{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(18deg)}}
+.sci-leg-r{transform-box:fill-box;transform-origin:50% 0%;animation:slr .56s ease-in-out infinite;}
+@keyframes slr{0%,100%{transform:rotate(18deg)}50%{transform:rotate(-8deg)}}
+.sh1{transform-box:fill-box;transform-origin:50% 100%;animation:sh1a .4s ease-in-out infinite;}
+.sh2{transform-box:fill-box;transform-origin:50% 100%;animation:sh2a .36s ease-in-out infinite .08s;}
+.sh3{transform-box:fill-box;transform-origin:50% 100%;animation:sh3a .44s ease-in-out infinite .14s;}
+.sh4{transform-box:fill-box;transform-origin:50% 100%;animation:sh4a .38s ease-in-out infinite .05s;}
+.sh5{transform-box:fill-box;transform-origin:50% 100%;animation:sh1a .42s ease-in-out infinite .2s;}
+@keyframes sh1a{0%,100%{transform:rotate(-14deg)}50%{transform:rotate(22deg)}}
+@keyframes sh2a{0%,100%{transform:rotate(22deg)}50%{transform:rotate(-12deg)}}
+@keyframes sh3a{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(28deg)}}
+@keyframes sh4a{0%,100%{transform:rotate(16deg)}50%{transform:rotate(-22deg)}}
+.sf1{animation:sfloat 1.1s ease-in-out infinite;}
+.sf2{animation:sfloat 1.0s ease-in-out infinite .28s;}
+.sf3{animation:sfloat 1.35s ease-in-out infinite .55s;}
+.sf4{animation:sfloat 1.15s ease-in-out infinite .1s;}
+@keyframes sfloat{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-11px) rotate(18deg)}}
+.sbb{animation:sbba .9s ease-in-out infinite;}
+@keyframes sbba{0%,100%{transform:scale(1) translateY(0)}50%{transform:scale(1.035) translateY(-4px)}}
+.prize-disc{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:15px;text-align:left;max-width:540px;width:100%;}
+.prize-disc strong{color:var(--amber);}
+.prize-disc p{font-size:13px;line-height:1.7;color:var(--text);margin-top:8px;}
+.play-btn{background:var(--surface);border:2px solid var(--teal);color:var(--white);padding:11px 34px;border-radius:11px;font-size:15px;font-weight:700;font-family:'Rajdhani',sans-serif;cursor:pointer;letter-spacing:1px;transition:all .2s;}
+.play-btn:hover{background:rgba(0,229,204,.1);}
 </style>
 </head>
 <body>
-<div class="container">
 
-  <div class="header">
-    <div class="badge">GENERAL CHEMISTRY · GAME 1</div>
-    <h1>🔬 Periodic Table Treasure Hunt</h1>
-    <p>Identify the mystery element from chemistry clues alone</p>
-    <div class="stats">
-      <div class="stat"><div class="stat-val" id="score">0</div><div class="stat-lbl">Score</div></div>
-      <div class="stat"><div class="stat-val">6</div><div class="stat-lbl">Clues</div></div>
-      <div class="stat"><div class="stat-val" id="pct">0%</div><div class="stat-lbl">Accuracy</div></div>
+<!-- INTRO -->
+<div id="s-intro" class="screen active">
+  <div class="particles" id="particles"></div>
+  <div class="intro-badge">GENERAL CHEMISTRY · GAME 1</div>
+  <h1 class="intro-title">🔬 Periodic Table<br><span>Treasure Hunt</span></h1>
+  <p class="intro-sub">Travel the chemistry world, solve element riddles at each landmark, collect elements in your backpack, then unlock the secret lab door.</p>
+  <div class="intro-feats">
+    <div class="feat">🗺️ 6 themed checkpoints</div>
+    <div class="feat">🌍 Real-world connections</div>
+    <div class="feat">🎒 Build your element backpack</div>
+    <div class="feat">🔓 Periodic table puzzle finale</div>
+  </div>
+  <button class="start-btn" onclick="startGame()">Begin the Hunt →</button>
+</div>
+
+<!-- MAP -->
+<div id="s-map" class="screen">
+  <div class="map-topbar">
+    <div class="map-title">🗺️ Element Hunt</div>
+    <div class="map-stats">
+      <div><div class="mstat-val" id="m-score">0</div><div class="mstat-lbl">SCORE</div></div>
+      <div><div class="mstat-val" id="m-cp">0/6</div><div class="mstat-lbl">ELEMENTS</div></div>
+      <div><div class="mstat-val" id="m-pct">—</div><div class="mstat-lbl">ACCURACY</div></div>
     </div>
   </div>
-
-  <div class="progress-wrap" id="prog-wrap">
-    <div class="progress-label"><span id="clue-label">Clue 1 of 6</span><span id="topic-label"></span></div>
-    <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
-    <div class="dots" id="dots"></div>
+  <div class="map-wrapper">
+    <svg id="map-svg" viewBox="0 0 820 470" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="inv-bar">
+      <span class="inv-lbl">🎒 BACKPACK</span>
+      <div id="inv-slots"></div>
+    </div>
+    <button class="go-btn" id="go-btn" onclick="goNext()">▶ Start the journey</button>
   </div>
+</div>
 
-  <div id="game-area">
-    <div class="clue-card" id="clue-card">
-      <div class="clue-meta">
-        <span class="clue-badge" id="clue-badge">CLUE 1</span>
-        <span class="topic-badge" id="topic-badge"></span>
+<!-- QUIZ -->
+<div id="s-quiz" class="screen">
+  <div class="quiz-theme-bar" id="quiz-theme-bar">
+    <div class="qtb-icon" id="q-icon"></div>
+    <div class="qtb-name" id="q-loc"></div>
+    <div class="qtb-sub" id="q-topic"></div>
+  </div>
+  <div class="quiz-body">
+    <div class="rl-box">
+      <div class="rl-ico">🌍</div>
+      <div>
+        <div class="rl-lbl">REAL-WORLD CONNECTION</div>
+        <div class="rl-txt" id="rl-txt"></div>
       </div>
-      <div class="clue-text"><span class="clue-label">Mystery element: </span><span id="clue-text"></span></div>
-      <div class="question-label">Which element am I?</div>
-      <div class="opts" id="opts"></div>
-      <div class="feedback" id="feedback">
-        <div class="fb-title" id="fb-title"></div>
-        <div class="elem-card">
-          <div class="elem-box">
-            <div class="elem-num" id="fb-num"></div>
-            <div class="elem-sym" id="fb-sym"></div>
-            <div class="elem-mass" id="fb-mass"></div>
-          </div>
-          <div class="elem-info">
-            <div class="elem-name" id="fb-name"></div>
-            <div class="elem-grp" id="fb-grp"></div>
-            <div class="elem-conf" id="fb-conf"></div>
-          </div>
+    </div>
+    <div class="clue-card-q">
+      <div class="clue-meta-q">
+        <span class="clue-badge-q" id="q-badge">CLUE 1</span>
+        <span class="topic-badge-q" id="q-tbadge"></span>
+      </div>
+      <div class="clue-text-q"><span class="clue-lbl-q">Mystery element: </span><span id="q-clue"></span></div>
+      <div class="q-label-q">Which element am I?</div>
+    </div>
+    <div class="opts-q" id="q-opts"></div>
+    <div class="feedback-q" id="q-feedback">
+      <div class="fb-title-q" id="q-fbtitle"></div>
+      <div class="elem-card-q">
+        <div class="elem-box-q">
+          <div class="enq" id="q-fbn"></div>
+          <div class="esq" id="q-fbs"></div>
+          <div class="emq" id="q-fbm"></div>
         </div>
-        <ul class="exp-list" id="fb-exp"></ul>
+        <div class="elem-info-q">
+          <div class="enaq" id="q-fbname"></div>
+          <div class="egrp" id="q-fbgrp"></div>
+          <div class="ecnf" id="q-fbconf"></div>
+        </div>
       </div>
-      <button class="next-btn" id="next-btn"></button>
+      <ul class="exp-list-q" id="q-fbexp"></ul>
     </div>
+    <button class="next-btn-q" id="q-nxt"></button>
+  </div>
+</div>
+
+<!-- FINALE -->
+<div id="s-finale" class="screen">
+  <div class="finale-header">
+    <div class="finale-title">🔬 The Chemistry Lab</div>
+    <div class="finale-sub">You collected all 6 elements! Place each one in its correct slot to unlock the door.</div>
+    <div class="finale-inst" id="f-inst">Select an element from your backpack below, then click its empty slot on the table.</div>
+  </div>
+  <div class="pt-wrap"><div class="pt-grid" id="pt-grid"></div></div>
+  <div class="shelf" id="shelf"><div class="shelf-lbl">YOUR COLLECTED ELEMENTS — CLICK TO SELECT</div></div>
+  <div id="door-overlay">
+    <div class="door-panel left"><div class="door-deco"><div class="door-sym">PERIODIC</div><div style="font-size:1.4rem;color:var(--teal);opacity:.4">⬡</div><div class="door-sym">TABLE</div></div></div>
+    <div class="door-panel right"><div class="door-deco"><div class="door-sym">CHEM</div><div style="font-size:1.4rem;color:var(--teal);opacity:.4">⬡</div><div class="door-sym">LAB</div></div></div>
+  </div>
+</div>
+
+<!-- PRIZE -->
+<div id="s-prize" class="screen">
+  <div class="prize-score" id="prize-score"></div>
+  <div class="prize-lbl" id="prize-lbl"></div>
+
+  <!-- Dancing scientist -->
+  <div class="sci-wrap">
+   <svg viewBox="0 0 240 318" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
+
+    <!-- Speech bubble -->
+    <g class="sbb">
+      <rect x="6" y="2" width="228" height="62" rx="14" fill="#00E5CC"/>
+      <polygon points="90,64 115,64 100,79" fill="#00E5CC"/>
+      <text x="120" y="26" text-anchor="middle" font-family="Rajdhani,sans-serif" font-weight="700" font-size="14" fill="#060A12">⚗️ WE WILL MAKE</text>
+      <text x="120" y="50" text-anchor="middle" font-family="Rajdhani,sans-serif" font-weight="700" font-size="14" fill="#060A12">CHEMISTRY GREAT AGAIN! 🧪</text>
+    </g>
+
+    <!-- Whole body sways -->
+    <g class="sci-body">
+
+      <!-- Wild white hair (behind head) -->
+      <g transform="translate(120,115)">
+        <g class="sh1"><path d="M -7,-1 Q -20,-28 -26,-52" stroke="#EFEFEF" stroke-width="6" stroke-linecap="round" fill="none"/></g>
+        <g class="sh2"><path d="M 0,-4 Q -4,-34 -4,-58" stroke="#E8E8E8" stroke-width="5" stroke-linecap="round" fill="none"/></g>
+        <g class="sh3"><path d="M 6,-2 Q 16,-30 20,-56" stroke="#F0F0F0" stroke-width="5" stroke-linecap="round" fill="none"/></g>
+        <g class="sh4"><path d="M 11,-1 Q 30,-20 40,-38" stroke="#E8E8E8" stroke-width="5" stroke-linecap="round" fill="none"/></g>
+        <g class="sh5"><path d="M -11,0 Q -34,-10 -44,-26" stroke="#F2F2F2" stroke-width="4" stroke-linecap="round" fill="none"/></g>
+      </g>
+
+      <!-- Head -->
+      <circle cx="120" cy="128" r="35" fill="#FBBF24"/>
+
+      <!-- Bushy eyebrows -->
+      <path d="M 99,113 Q 108,107 117,112" stroke="#D1D5DB" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+      <path d="M 123,112 Q 132,107 141,113" stroke="#D1D5DB" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+
+      <!-- Eyes -->
+      <circle cx="108" cy="124" r="6" fill="white"/>
+      <circle cx="132" cy="124" r="6" fill="white"/>
+      <circle cx="109" cy="125" r="3.5" fill="#1F2937"/>
+      <circle cx="133" cy="125" r="3.5" fill="#1F2937"/>
+      <circle cx="110.5" cy="123.5" r="1" fill="white"/>
+      <circle cx="134.5" cy="123.5" r="1" fill="white"/>
+
+      <!-- Round glasses -->
+      <circle cx="108" cy="124" r="11" fill="none" stroke="#6B7280" stroke-width="2.5"/>
+      <circle cx="132" cy="124" r="11" fill="none" stroke="#6B7280" stroke-width="2.5"/>
+      <line x1="119" y1="124" x2="121" y2="124" stroke="#6B7280" stroke-width="2"/>
+      <line x1="97" y1="120" x2="90" y2="118" stroke="#6B7280" stroke-width="2"/>
+      <line x1="143" y1="120" x2="150" y2="118" stroke="#6B7280" stroke-width="2"/>
+
+      <!-- Moustache -->
+      <path d="M 109,140 Q 115,134 120,137 Q 125,134 131,140" stroke="#D1D5DB" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+
+      <!-- Big grin -->
+      <path d="M 105,148 Q 120,166 135,148" stroke="#B45309" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+      <!-- Lab coat -->
+      <rect x="92" y="160" width="56" height="82" rx="9" fill="white"/>
+      <!-- Lapels -->
+      <path d="M 120,160 L 99,176 L 93,160 Z" fill="#E5E7EB"/>
+      <path d="M 120,160 L 141,176 L 147,160 Z" fill="#E5E7EB"/>
+      <!-- Breast pocket -->
+      <rect x="127" y="188" width="15" height="20" rx="2" fill="none" stroke="#D1D5DB" stroke-width="1.5"/>
+      <!-- Pens -->
+      <line x1="131" y1="188" x2="130" y2="203" stroke="#00E5CC" stroke-width="2" stroke-linecap="round"/>
+      <line x1="135" y1="188" x2="134" y2="203" stroke="#F5A623" stroke-width="2" stroke-linecap="round"/>
+
+      <!-- Left arm — shoulder at (92,172) extends left -->
+      <g class="sci-arm-l" transform="translate(92,172)">
+        <rect x="-38" y="-7" width="39" height="14" rx="7" fill="white"/>
+        <circle cx="-38" cy="0" r="9" fill="#FBBF24"/>
+        <!-- Flask in hand -->
+        <g transform="translate(-60,-20)">
+          <rect x="3" y="0" width="10" height="7" rx="2" fill="#D1D5DB" stroke="#9CA3AF" stroke-width="1"/>
+          <path d="M 5,7 L 2,21 Q 0,28 8,30 Q 16,32 17,25 L 13,7 Z" fill="#818CF8" opacity="0.88"/>
+          <ellipse cx="8" cy="18" rx="4" ry="2.5" fill="white" opacity="0.35"/>
+        </g>
+      </g>
+
+      <!-- Right arm — shoulder at (148,172) extends right -->
+      <g class="sci-arm-r" transform="translate(148,172)">
+        <rect x="-1" y="-7" width="38" height="14" rx="7" fill="white"/>
+        <circle cx="37" cy="0" r="9" fill="#FBBF24"/>
+      </g>
+
+      <!-- Left leg — hip at (109,240) -->
+      <g class="sci-leg-l" transform="translate(109,240)">
+        <rect x="-13" y="0" width="25" height="58" rx="9" fill="#1E3A8A"/>
+        <ellipse cx="0" cy="60" rx="15" ry="8" fill="#111827"/>
+      </g>
+
+      <!-- Right leg — hip at (133,240) -->
+      <g class="sci-leg-r" transform="translate(133,240)">
+        <rect x="-12" y="0" width="25" height="58" rx="9" fill="#1E3A8A"/>
+        <ellipse cx="0" cy="60" rx="15" ry="8" fill="#111827"/>
+      </g>
+
+      <!-- Floating chemistry bits -->
+      <text x="50" y="168" font-size="16" class="sf1">⚛️</text>
+      <text x="170" y="195" font-size="15" class="sf2">🧪</text>
+      <text x="45" y="215" font-size="13" class="sf3">✨</text>
+      <text x="175" y="158" font-size="14" class="sf4">⚗️</text>
+
+    </g><!-- end sci-body -->
+   </svg>
   </div>
 
-  <div class="results" id="results">
-    <div style="font-size:2rem">🏆</div>
-    <div class="result-score" id="res-score"></div>
-    <div class="result-label" id="res-label"></div>
-    <div class="grade-cards" id="grade-cards"></div>
-    <div class="disc">
-      <strong>Discussion questions:</strong><br>
-      1. Which periodic trend was hardest to identify from the clue alone — ionization energy, electronegativity, or electron configuration?<br>
-      2. How does the half-filled 3p³ subshell of phosphorus compare to nitrogen's — and why does only phosphorus expand its octet?<br>
-      3. Iron shows +2 and +3 states. Predict which oxidation state copper most commonly adopts and explain why.
-    </div>
-    <button class="restart-btn" onclick="restart()">Play again</button>
+  <div class="prize-disc">
+    <strong>Discussion questions:</strong>
+    <p>1. Which periodic trend was hardest to identify from the clue alone — ionization energy, electronegativity, or electron configuration?</p>
+    <p>2. How does the half-filled 3p³ subshell of phosphorus compare to nitrogen's — and why does only phosphorus expand its octet?</p>
+    <p>3. Iron shows +2 and +3 states. Predict which oxidation state copper most commonly adopts and explain why.</p>
   </div>
-
-  <div class="rubric" id="rubric" style="display:none">
-    <h3>📋 Game Evaluation Rubric</h3>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:1rem">Rate this game after completing it (1 = poor · 5 = excellent)</p>
-    <div id="rubric-rows"></div>
-    <button class="submit-rubric" onclick="submitRubric()">Submit evaluation</button>
-    <div class="rubric-thanks" id="rubric-thanks">✓ Thank you — your evaluation has been recorded.</div>
-  </div>
-
-  <footer>Hallal, Hamdan & Tlais · Journal of Chemical Education · 2026</footer>
+  <button class="play-btn" onclick="restartGame()">🔄 Play Again</button>
 </div>
 
 <script>
+// ════════════════════════════════════════════════
+//  GAME DATA
+// ════════════════════════════════════════════════
 const CLUES = [
-  { topic:"Group & period · electron config · ionization energy",
+  {
+    topic:"Group & period · electron config · ionization energy",
+    location:"Salt Mines", icon:"🏜️", color:"#F59E0B",
+    gradient:"linear-gradient(135deg,#78350F,#92400E)",
+    realLife:"You encounter this element every time you reach for a salt shaker — table salt (NaCl) is mostly this metal. Without it, your heart couldn't beat: nerve cells use it to fire the electrical signals that keep you alive. Sports drinks like Gatorade contain it to replace what you lose through sweat.",
     clue:"I belong to Period 3 and Group 1. My electron configuration is [Ne] 3s¹ and I have 11 protons. Among all Period 3 elements I have the lowest first ionization energy (496 kJ/mol) because my single valence electron is shielded by a complete inner shell. I form a +1 ion by losing that electron.",
     opts:["Potassium (K)","Lithium (Li)","Sodium (Na)","Magnesium (Mg)"], ans:2,
     sym:"Na", num:"11", mass:"22.99", grp:"Group 1 · Period 3", conf:"[Ne] 3s¹",
     exp:["Configuration [Ne] 3s¹ gives exactly 1 valence electron — the defining feature of Group 1",
          "Lowest IE in Period 3 at 496 kJ/mol — shielding from complete n=2 shell weakens nuclear pull",
          "Na⁺ is isoelectronic with neon: loses 3s¹ to achieve noble gas configuration",
-         "IE increases across Period 3 as nuclear charge rises with no added shielding"] },
-  { topic:"Group 14 · hybridization · covalent bonding",
+         "IE increases across Period 3 as nuclear charge rises with no added shielding"]
+  },
+  {
+    topic:"Group 14 · hybridization · covalent bonding",
+    location:"Crystal Cave", icon:"💎", color:"#818CF8",
+    gradient:"linear-gradient(135deg,#312E81,#4338CA)",
+    realLife:"Every diamond ever mined is pure this element — atoms locked in a rigid 3D lattice, making it the hardest natural material on Earth. The graphite in your pencil is also pure this element, just stacked in flat layers that slide apart. Your entire body is built on it: every protein, fat, sugar, and DNA strand contains it as its backbone.",
     clue:"I am Period 2, Group 14 with electronegativity 2.5 (Pauling scale). My ground-state configuration is [He] 2s² 2p². Through sp³ hybridization I form 4 equivalent tetrahedral bonds. I can also form sp² and sp hybrids to produce double and triple bonds. I have 4 valence electrons.",
     opts:["Silicon (Si)","Nitrogen (N)","Boron (B)","Carbon (C)"], ans:3,
     sym:"C", num:"6", mass:"12.01", grp:"Group 14 · Period 2", conf:"[He] 2s² 2p²",
     exp:["Configuration [He] 2s² 2p² gives exactly 4 valence electrons → 4 bonds",
          "sp³ hybridization produces 4 equivalent orbitals at 109.5° (tetrahedral geometry)",
          "sp² → 120° trigonal planar (ethene); sp → 180° linear (ethyne)",
-         "EN = 2.5 on Pauling scale — intermediate, allowing both polar and nonpolar bonds"] },
-  { topic:"Group 17 · electronegativity · reduction potential",
+         "EN = 2.5 on Pauling scale — intermediate, allowing both polar and nonpolar bonds"]
+  },
+  {
+    topic:"Group 17 · electronegativity · reduction potential",
+    location:"Aqua Center", icon:"🏊", color:"#38BDF8",
+    gradient:"linear-gradient(135deg,#0C4A6E,#0284C7)",
+    realLife:"That sharp chemical smell at the swimming pool? That's this element reacting with organic matter in the water — it's added to kill bacteria. It's also the other half of table salt (Na + this element). Bleach (NaOCl) uses it as the active killing agent. PVC plastic pipes and water-treatment plants worldwide depend on it.",
     clue:"I am a Period 3 halogen with 7 valence electrons and configuration [Ne] 3s² 3p⁵. I have the highest electronegativity in Period 3 (EN = 3.0, Pauling). My standard reduction potential is +1.36 V making me a powerful oxidizing agent. I need only 1 electron to complete my octet.",
     opts:["Sulfur (S)","Chlorine (Cl)","Bromine (Br)","Fluorine (F)"], ans:1,
     sym:"Cl", num:"17", mass:"35.45", grp:"Group 17 · Period 3", conf:"[Ne] 3s² 3p⁵",
     exp:["Configuration [Ne] 3s² 3p⁵ gives 7 valence electrons — 1 short of a complete octet",
          "Highest EN in Period 3 at 3.0; F is highest overall at 3.98",
          "E° = +1.36 V: Cl₂ + 2e⁻ → 2Cl⁻ — strong tendency to gain electrons",
-         "Cl⁻ is isoelectronic with argon — stable noble gas configuration achieved"] },
-  { topic:"Period 4 transition metals · d-orbital config · oxidation states",
+         "Cl⁻ is isoelectronic with argon — stable noble gas configuration achieved"]
+  },
+  {
+    topic:"Period 4 transition metals · d-orbital config · oxidation states",
+    location:"Iron Forge", icon:"⚒️", color:"#F87171",
+    gradient:"linear-gradient(135deg,#7F1D1D,#B91C1C)",
+    realLife:"The deep red of blood comes from hemoglobin — a protein that uses this element to grip and carry oxygen to every cell in your body. Without it you'd develop anaemia. The Eiffel Tower is built entirely from it. Many breakfast cereals are 'iron-fortified', meaning they contain actual tiny metal filings you eat.",
     clue:"I am a Period 4 transition metal with atomic number 26 and configuration [Ar] 3d⁶ 4s². Because my 3d and 4s orbitals are close in energy I display multiple oxidation states — most commonly +2 (losing 4s²) and +3 (losing one 3d electron also). I am the most abundant transition metal in Earth's crust.",
     opts:["Manganese (Mn)","Copper (Cu)","Iron (Fe)","Cobalt (Co)"], ans:2,
     sym:"Fe", num:"26", mass:"55.85", grp:"Group 8 · Period 4", conf:"[Ar] 3d⁶ 4s²",
     exp:["Configuration [Ar] 3d⁶ 4s² — 4s electrons are lost first giving Fe²⁺ = [Ar] 3d⁶",
          "Fe³⁺ = [Ar] 3d⁵ — half-filled d subshell confers extra exchange energy stability",
          "Multiple oxidation states arise from close 3d/4s energy — characteristic of transition metals",
-         "Most abundant transition metal in Earth's crust — ~5% by mass"] },
-  { topic:"Group 16 · VSEPR · bond angle · polarity",
+         "Most abundant transition metal in Earth's crust — ~5% by mass"]
+  },
+  {
+    topic:"Group 16 · VSEPR · bond angle · polarity",
+    location:"Summit Peak", icon:"🏔️", color:"#93C5FD",
+    gradient:"linear-gradient(135deg,#1E3A8A,#2563EB)",
+    realLife:"Every breath you take pulls this element into your lungs — it makes up 21% of Earth's atmosphere and every cell burns it to release energy. Water (H₂O) is two hydrogen atoms bonded to this element. When iron rusts or a cut apple browns, that's this element reacting. Hospitals pipe it in concentrated form to help critically ill patients breathe.",
     clue:"I am Period 2, Group 16 with configuration [He] 2s² 2p⁴. My electronegativity is 3.5 — second only to fluorine. I have 2 bonding pairs and 2 lone pairs. According to VSEPR my lone pairs compress the bond angle to 104.5°, making my hydride molecule bent rather than linear.",
     opts:["Sulfur (S)","Selenium (Se)","Nitrogen (N)","Oxygen (O)"], ans:3,
     sym:"O", num:"8", mass:"16.00", grp:"Group 16 · Period 2", conf:"[He] 2s² 2p⁴",
     exp:["Configuration [He] 2s² 2p⁴ gives 6 valence electrons: 2 bonds + 2 lone pairs",
          "VSEPR: 4 electron pairs → tetrahedral arrangement, but 2 lone pairs give bent molecular geometry",
          "Lone pair–lone pair repulsion > lone pair–bond pair > bond pair–bond pair → angle compressed to 104.5°",
-         "EN = 3.5 creates strongly polar O–H bonds → large net dipole → universal biological solvent"] },
-  { topic:"Group 15 · half-filled stability · octet expansion",
+         "EN = 3.5 creates strongly polar O–H bonds → large net dipole → universal biological solvent"]
+  },
+  {
+    topic:"Group 15 · half-filled stability · octet expansion",
+    location:"Bio-Farm", icon:"🌿", color:"#4ADE80",
+    gradient:"linear-gradient(135deg,#14532D,#15803D)",
+    realLife:"Every cell in your body runs on ATP — adenosine tri-phosphate — where 'phosphate' means this element bonded to oxygen, storing chemical energy. The entire backbone of your DNA is a chain of these phosphate groups. Strike-anywhere matches use red this-element on the striking surface. Without it in fertilisers, modern agriculture could not feed the world's population.",
     clue:"I am Period 3, Group 15 with configuration [Ne] 3s² 3p³. My three 3p orbitals are each half-filled giving extra exchange energy stability. Unlike my Period 2 analogue, I can expand my octet using available 3d orbitals, allowing oxidation states of +3 and +5. My oxyanion form carries three negative charges.",
     opts:["Nitrogen (N)","Arsenic (As)","Phosphorus (P)","Sulfur (S)"], ans:2,
     sym:"P", num:"15", mass:"30.97", grp:"Group 15 · Period 3", conf:"[Ne] 3s² 3p³",
     exp:["Configuration [Ne] 3s² 3p³ — three half-filled 3p orbitals (one each in px, py, pz)",
          "Period 3 has empty 3d orbitals available → octet expansion possible (e.g. PCl₅, H₃PO₄)",
          "Oxidation states: +3 (PCl₃, phosphite) and +5 (PO₄³⁻, phosphate)",
-         "Phosphate (PO₄³⁻) carries 3 negative charges at physiological pH — key biochemical anion"] },
+         "Phosphate (PO₄³⁻) carries 3 negative charges at physiological pH — key biochemical anion"]
+  }
 ];
 
-let current = 0, score = 0, answered = 0;
+// Checkpoint map positions (820×470 SVG)
+const CP = [
+  {x:62,  y:400, label:"Start",        icon:"🚀", color:"#64748B"},
+  {x:168, y:262, label:"Salt Mines",   icon:"🏜️", color:"#F59E0B", ci:0},
+  {x:298, y:373, label:"Crystal Cave", icon:"💎", color:"#818CF8", ci:1},
+  {x:413, y:193, label:"Aqua Center",  icon:"🏊", color:"#38BDF8", ci:2},
+  {x:537, y:315, label:"Iron Forge",   icon:"⚒️", color:"#F87171", ci:3},
+  {x:660, y:150, label:"Summit Peak",  icon:"🏔️", color:"#93C5FD", ci:4},
+  {x:754, y:288, label:"Bio-Farm",     icon:"🌿", color:"#4ADE80", ci:5},
+  {x:754, y:416, label:"Chem Lab",     icon:"🔬", color:"#00E5CC"},
+];
 
-function buildDots() {
-  const c = document.getElementById('dots');
-  c.innerHTML = '';
-  CLUES.forEach((_, i) => {
-    const d = document.createElement('div');
-    d.className = 'dot' + (i < current ? ' done' : i === current ? ' current' : '');
-    d.textContent = i < current ? '✓' : i + 1;
-    c.appendChild(d);
+// Periodic table elements (periods 1-4)
+const PT = [
+  {s:'H',  n:1,  c:1,  r:1},  {s:'He', n:2,  c:18, r:1},
+  {s:'Li', n:3,  c:1,  r:2},  {s:'Be', n:4,  c:2,  r:2},
+  {s:'B',  n:5,  c:13, r:2},  {s:'C',  n:6,  c:14, r:2, t:1},
+  {s:'N',  n:7,  c:15, r:2},  {s:'O',  n:8,  c:16, r:2, t:1},
+  {s:'F',  n:9,  c:17, r:2},  {s:'Ne', n:10, c:18, r:2},
+  {s:'Na', n:11, c:1,  r:3, t:1}, {s:'Mg', n:12, c:2,  r:3},
+  {s:'Al', n:13, c:13, r:3}, {s:'Si', n:14, c:14, r:3},
+  {s:'P',  n:15, c:15, r:3, t:1}, {s:'S',  n:16, c:16, r:3},
+  {s:'Cl', n:17, c:17, r:3, t:1}, {s:'Ar', n:18, c:18, r:3},
+  {s:'K',  n:19, c:1,  r:4},  {s:'Ca', n:20, c:2,  r:4},
+  {s:'Sc', n:21, c:3,  r:4},  {s:'Ti', n:22, c:4,  r:4},
+  {s:'V',  n:23, c:5,  r:4},  {s:'Cr', n:24, c:6,  r:4},
+  {s:'Mn', n:25, c:7,  r:4},  {s:'Fe', n:26, c:8,  r:4, t:1},
+  {s:'Co', n:27, c:9,  r:4},  {s:'Ni', n:28, c:10, r:4},
+  {s:'Cu', n:29, c:11, r:4},  {s:'Zn', n:30, c:12, r:4},
+  {s:'Ga', n:31, c:13, r:4},  {s:'Ge', n:32, c:14, r:4},
+  {s:'As', n:33, c:15, r:4},  {s:'Se', n:34, c:16, r:4},
+  {s:'Br', n:35, c:17, r:4},  {s:'Kr', n:36, c:18, r:4},
+];
+
+// ════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════
+let S = {
+  step:0, quizIdx:-1, score:0, answered:0,
+  collected:[], avatarPos:[62,400], moving:false,
+  selElem:null, placed:{}
+};
+
+// ════════════════════════════════════════════════
+//  SCREEN
+// ════════════════════════════════════════════════
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ════════════════════════════════════════════════
+//  INTRO PARTICLES
+// ════════════════════════════════════════════════
+function initParticles(){
+  const c=document.getElementById('particles');
+  const syms=['H','He','C','N','O','Na','Cl','Fe','P','Mg','Ca','Cu'];
+  for(let i=0;i<22;i++){
+    const p=document.createElement('div');
+    const sz=Math.random()<.5?22:28;
+    p.style.cssText=`left:${Math.random()*96}%;width:${sz}px;height:${sz}px;background:rgba(0,229,204,.05);border:1px solid rgba(0,229,204,.12);animation-duration:${5+Math.random()*6}s;animation-delay:${Math.random()*5}s;`;
+    p.className='particle';
+    p.textContent=syms[i%syms.length];
+    c.appendChild(p);
+  }
+}
+
+// ════════════════════════════════════════════════
+//  MAP
+// ════════════════════════════════════════════════
+function startGame(){ show('s-map'); initMap(); }
+
+function initMap(){
+  const svg=document.getElementById('map-svg');
+  const NS='http://www.w3.org/2000/svg';
+  svg.innerHTML='';
+  function e(tag,a){const el=document.createElementNS(NS,tag);Object.entries(a).forEach(([k,v])=>el.setAttribute(k,v));return el;}
+  function t(txt,a){const el=document.createElementNS(NS,'text');Object.entries(a).forEach(([k,v])=>el.setAttribute(k,v));el.textContent=txt;return el;}
+
+  // BG
+  svg.appendChild(e('rect',{width:'820',height:'470',fill:'#080C14',rx:'14'}));
+
+  // Hex pattern
+  const defs=e('defs',{});
+  const pat=e('pattern',{id:'hxp',width:'38',height:'33',patternUnits:'userSpaceOnUse'});
+  pat.appendChild(e('polygon',{points:'19,0 38,9.5 38,28.5 19,38 0,28.5 0,9.5',fill:'none',stroke:'#1E3258','stroke-width':'0.5',opacity:'0.35'}));
+  defs.appendChild(pat);
+  // Glow filter
+  const flt=e('filter',{id:'glow',x:'-60%',y:'-60%',width:'220%',height:'220%'});
+  const fb=e('feGaussianBlur',{stdDeviation:'4',result:'b'});
+  const fm=e('feMerge',{});
+  fm.appendChild(e('feMergeNode',{in:'b'})); fm.appendChild(e('feMergeNode',{in:'SourceGraphic'}));
+  flt.appendChild(fb); flt.appendChild(fm); defs.appendChild(flt);
+  svg.appendChild(defs);
+  svg.appendChild(e('rect',{width:'820',height:'470',fill:'url(#hxp)',rx:'14',opacity:'1'}));
+
+  // Zone halos
+  const zc=['#F59E0B','#818CF8','#38BDF8','#F87171','#93C5FD','#4ADE80'];
+  CP.slice(1,7).forEach((cp,i)=>{
+    svg.appendChild(e('ellipse',{cx:cp.x,cy:cp.y,rx:'75',ry:'65',fill:zc[i],opacity:'0.06'}));
+  });
+
+  // Trail shadow + dash
+  const pd='M 62,400 Q 115,331 168,262 Q 233,313 298,373 Q 355,282 413,193 Q 475,251 537,315 Q 598,230 660,150 Q 707,219 754,288 L 754,416';
+  svg.appendChild(e('path',{d:pd,fill:'none',stroke:'#000','stroke-width':'8','stroke-linecap':'round',opacity:'.5'}));
+  svg.appendChild(e('path',{d:pd,fill:'none',stroke:'#F59E0B','stroke-width':'3','stroke-linecap':'round','stroke-dasharray':'10,6',opacity:'.65'}));
+
+  // Checkpoints
+  CP.forEach((cp,i)=>{
+    const visited=i>0&&i<=S.step;
+    const isNext=i===S.step+1;
+    const locked=i>S.step+1;
+    const g=e('g',{transform:`translate(${cp.x},${cp.y})`,opacity:locked?'0.35':'1'});
+
+    // Pulse ring for next
+    if(isNext){
+      const pr=e('circle',{r:'24',fill:'none',stroke:cp.color,'stroke-width':'2',opacity:'0'});
+      pr.style.animation='cpulse 1.8s ease-in-out infinite';
+      g.appendChild(pr);
+    }
+
+    // BG circle
+    g.appendChild(e('circle',{r:'18',fill:visited?cp.color:'#0D1421',stroke:cp.color,'stroke-width':'2.5',filter:isNext?'url(#glow)':'none'}));
+
+    // Icon / checkmark
+    const ico=visited?'✓':cp.icon.replace(/️/g,'');
+    const tw=t(ico,{'text-anchor':'middle','dominant-baseline':'central','font-size':'13'});
+    if(visited){tw.setAttribute('fill','white');}
+    g.appendChild(tw);
+
+    // Label below
+    const lbl=t(cp.label,{y:'29','text-anchor':'middle','font-size':'9','font-family':'Rajdhani,sans-serif','font-weight':'700','letter-spacing':'0.5',fill:cp.color});
+    g.appendChild(lbl);
+    svg.appendChild(g);
+  });
+
+  // Avatar
+  const ag=e('g',{id:'avatar-group',transform:`translate(${S.avatarPos[0]},${S.avatarPos[1]})`});
+
+  // Shadow
+  ag.appendChild(e('ellipse',{cx:'0',cy:'28',rx:'10',ry:'4',fill:'rgba(0,0,0,.45)'}));
+  // Backpack
+  ag.appendChild(e('rect',{x:'5',y:'-13',width:'12',height:'18',rx:'3',fill:'#92400E'}));
+  ag.appendChild(e('rect',{x:'7',y:'-11',width:'8',height:'14',rx:'2',fill:'#78350F'}));
+  // Body
+  ag.appendChild(e('rect',{x:'-8',y:'-9',width:'14',height:'22',rx:'4',fill:'#DBEAFE'}));
+  ag.appendChild(e('line',{x1:'0',y1:'-9',x2:'0',y2:'13',stroke:'#BFDBFE','stroke-width':'1'}));
+  // Head
+  ag.appendChild(e('circle',{cx:'0',cy:'-20',r:'11',fill:'#FBBF24'}));
+  // Hair
+  ag.appendChild(e('path',{d:'M -11,-24 Q -8,-34 0,-35 Q 8,-34 11,-24 Q 6,-28 0,-29 Q -6,-28 -11,-24',fill:'#92400E'}));
+  // Eyes
+  ag.appendChild(e('circle',{cx:'-3.5',cy:'-21',r:'2',fill:'#1F2937'}));
+  ag.appendChild(e('circle',{cx:'3.5',cy:'-21',r:'2',fill:'#1F2937'}));
+  ag.appendChild(e('circle',{cx:'-2.5',cy:'-22.3',r:'.75',fill:'white'}));
+  ag.appendChild(e('circle',{cx:'4.5',cy:'-22.3',r:'.75',fill:'white'}));
+  // Smile
+  ag.appendChild(e('path',{d:'M -3,-16 Q 0,-14 3,-16',stroke:'#92400E','stroke-width':'1.5',fill:'none','stroke-linecap':'round'}));
+  // Arms
+  ag.appendChild(e('line',{x1:'-8',y1:'-4',x2:'-14',y2:'6',stroke:'#FBBF24','stroke-width':'3.5','stroke-linecap':'round'}));
+  ag.appendChild(e('line',{x1:'6',y1:'-4',x2:'12',y2:'4',stroke:'#FBBF24','stroke-width':'3.5','stroke-linecap':'round'}));
+  // Legs
+  ag.appendChild(e('line',{x1:'-3',y1:'13',x2:'-4',y2:'26',stroke:'#1E3A8A','stroke-width':'3.5','stroke-linecap':'round'}));
+  ag.appendChild(e('line',{x1:'3',y1:'13',x2:'4',y2:'26',stroke:'#1E3A8A','stroke-width':'3.5','stroke-linecap':'round'}));
+  // Feet
+  ag.appendChild(e('ellipse',{cx:'-4',cy:'28',rx:'5',ry:'3',fill:'#1E3A8A'}));
+  ag.appendChild(e('ellipse',{cx:'4',cy:'28',rx:'5',ry:'3',fill:'#1E3A8A'}));
+
+  // Backpack element tiles
+  const bpt=e('g',{id:'bp-tiles'});
+  S.collected.forEach((sym,i)=>{
+    const cl=CLUES.find(c=>c.sym===sym);
+    const y=-22-(i*13);
+    bpt.appendChild(e('rect',{x:'5',y:y.toString(),width:'14',height:'11',rx:'2',fill:cl.color,opacity:'.88'}));
+    const st=document.createElementNS(NS,'text');
+    st.setAttribute('x','12'); st.setAttribute('y',(y+8.5).toString());
+    st.setAttribute('text-anchor','middle'); st.setAttribute('font-size','6.5');
+    st.setAttribute('font-weight','800'); st.setAttribute('fill','white');
+    st.setAttribute('font-family','Rajdhani,sans-serif');
+    st.textContent=sym; bpt.appendChild(st);
+  });
+  ag.appendChild(bpt);
+  svg.appendChild(ag);
+
+  // Add pulse keyframe style if not present
+  if(!document.getElementById('cp-anim')){
+    const s=document.createElement('style');
+    s.id='cp-anim';
+    s.textContent='@keyframes cpulse{0%,100%{opacity:.5;r:22px}50%{opacity:.08;r:28px}}';
+    document.head.appendChild(s);
+  }
+
+  buildInvBar();
+  updateGoBtn();
+}
+
+function buildInvBar(){
+  const slots=document.getElementById('inv-slots');
+  slots.innerHTML='';
+  CLUES.forEach((c,i)=>{
+    const d=document.createElement('div');
+    const collected=S.collected.includes(c.sym);
+    d.className='inv-slot'+(collected?' filled':'');
+    d.innerHTML=collected
+      ?`<div class="isn">${c.num}</div><div class="iss">${c.sym}</div><div class="isl">${c.opts[c.ans].split(' ')[0]}</div>`
+      :`<span style="font-size:15px;opacity:.25">?</span>`;
+    slots.appendChild(d);
   });
 }
 
-function renderClue() {
-  if (current >= CLUES.length) { showResults(); return; }
-  const c = CLUES[current];
-  document.getElementById('clue-label').textContent = `Clue ${current+1} of ${CLUES.length}`;
-  document.getElementById('topic-label').textContent = c.topic;
-  document.getElementById('clue-badge').textContent = `CLUE ${current+1}`;
-  document.getElementById('topic-badge').textContent = c.topic.split('·')[0].trim();
-  document.getElementById('clue-text').textContent = c.clue;
-  document.getElementById('prog-fill').style.width = `${(current/CLUES.length)*100}%`;
-  buildDots();
-  const fb = document.getElementById('feedback');
-  fb.className = 'feedback';
-  document.getElementById('next-btn').className = 'next-btn';
-  const opts = document.getElementById('opts');
-  opts.innerHTML = '';
-  const labels = ['A','B','C','D'];
-  c.opts.forEach((opt, i) => {
-    const b = document.createElement('button');
-    b.className = 'opt';
-    b.innerHTML = `<span class="opt-label">${labels[i]}</span>${opt}`;
-    b.onclick = () => answer(i, b);
+function updateGoBtn(){
+  const btn=document.getElementById('go-btn');
+  btn.disabled=S.moving;
+  if(S.step===0) btn.textContent=`▶ Begin journey to ${CP[1].label} ${CP[1].icon}`;
+  else btn.textContent=`▶ Journey to ${CP[S.step+1].label} ${CP[S.step+1].icon}`;
+}
+
+function moveAvatar(toIdx, cb){
+  const [sx,sy]=S.avatarPos;
+  const {x:tx,y:ty}=CP[toIdx];
+  const dur=1800; let t0=null; S.moving=true;
+  const ease=t=>t<.5?2*t*t:-1+(4-2*t)*t;
+  function step(ts){
+    if(!t0)t0=ts;
+    const raw=Math.min((ts-t0)/dur,1), et=ease(raw);
+    const cx=sx+(tx-sx)*et, cy=sy+(ty-sy)*et;
+    const bob=Math.sin(raw*Math.PI*10)*3*(1-raw);
+    const ag=document.getElementById('avatar-group');
+    if(ag)ag.setAttribute('transform',`translate(${cx.toFixed(1)},${(cy+bob).toFixed(1)})`);
+    if(raw<1){requestAnimationFrame(step);}
+    else{
+      if(ag)ag.setAttribute('transform',`translate(${tx},${ty})`);
+      S.avatarPos=[tx,ty]; S.moving=false; cb&&cb();
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+function goNext(){
+  if(S.moving) return;
+  document.getElementById('go-btn').disabled=true;
+  const next=S.step+1;
+  moveAvatar(next,()=>{
+    if(next===7){ S.step=7; setTimeout(()=>showFinale(),300); }
+    else{
+      S.quizIdx=CP[next].ci;
+      S.step=next;
+      setTimeout(()=>showQuiz(),300);
+    }
+  });
+}
+
+// ════════════════════════════════════════════════
+//  QUIZ
+// ════════════════════════════════════════════════
+function showQuiz(){
+  show('s-quiz');
+  const c=CLUES[S.quizIdx];
+  const bar=document.getElementById('quiz-theme-bar');
+  bar.style.background=c.gradient;
+  document.getElementById('q-icon').textContent=c.icon;
+  document.getElementById('q-loc').textContent=c.location;
+  document.getElementById('q-topic').textContent=c.topic;
+  document.getElementById('rl-txt').textContent=c.realLife;
+  document.getElementById('q-badge').textContent=`CLUE ${S.quizIdx+1}`;
+  document.getElementById('q-tbadge').textContent=c.topic.split('·')[0].trim();
+  document.getElementById('q-clue').textContent=c.clue;
+  document.getElementById('q-feedback').className='feedback-q';
+  document.getElementById('q-nxt').className='next-btn-q';
+  const opts=document.getElementById('q-opts');
+  opts.innerHTML='';
+  ['A','B','C','D'].forEach((lbl,i)=>{
+    const b=document.createElement('button');
+    b.className='opt-q';
+    b.innerHTML=`<span class="opt-lbl-q">${lbl}</span>${c.opts[i]}`;
+    b.onclick=()=>handleAnswer(i,b);
     opts.appendChild(b);
   });
 }
 
-function answer(i, btn) {
-  const c = CLUES[current];
-  const correct = i === c.ans;
-  if (correct) score++;
-  answered++;
-  document.querySelectorAll('.opt').forEach((b, idx) => {
-    b.disabled = true;
-    if (idx === c.ans) b.classList.add('correct');
-    else if (idx === i && !correct) b.classList.add('wrong');
+function handleAnswer(i){
+  const c=CLUES[S.quizIdx];
+  const ok=i===c.ans;
+  if(ok) S.score++;
+  S.answered++;
+  document.querySelectorAll('.opt-q').forEach((b,idx)=>{
+    b.disabled=true;
+    if(idx===c.ans) b.classList.add('correct');
+    else if(idx===i&&!ok) b.classList.add('wrong');
   });
-  const fb = document.getElementById('feedback');
-  fb.className = 'feedback show ' + (correct ? 'ok' : 'bad');
-  document.getElementById('fb-title').textContent = correct ? `✓ Correct! The element is ${c.opts[c.ans]}` : `✗ Incorrect — the answer is ${c.opts[c.ans]}`;
-  document.getElementById('fb-num').textContent = c.num;
-  document.getElementById('fb-sym').textContent = c.sym;
-  document.getElementById('fb-mass').textContent = c.mass;
-  document.getElementById('fb-name').textContent = c.opts[c.ans];
-  document.getElementById('fb-grp').textContent = c.grp;
-  document.getElementById('fb-conf').textContent = c.conf;
-  const ul = document.getElementById('fb-exp');
-  ul.innerHTML = c.exp.map(e => `<li>${e}</li>`).join('');
-  document.getElementById('score').textContent = score;
-  document.getElementById('pct').textContent = `${Math.round(score/answered*100)}%`;
-  const nb = document.getElementById('next-btn');
-  nb.className = 'next-btn show';
-  nb.textContent = current < CLUES.length - 1 ? 'Next clue →' : 'See results →';
+  const fb=document.getElementById('q-feedback');
+  fb.className='feedback-q show '+(ok?'ok':'bad');
+  document.getElementById('q-fbtitle').textContent=ok?`✓ Correct! The element is ${c.opts[c.ans]}`:`✗ Incorrect — the answer is ${c.opts[c.ans]}`;
+  document.getElementById('q-fbn').textContent=c.num;
+  document.getElementById('q-fbs').textContent=c.sym;
+  document.getElementById('q-fbm').textContent=c.mass;
+  document.getElementById('q-fbname').textContent=c.opts[c.ans];
+  document.getElementById('q-fbgrp').textContent=c.grp;
+  document.getElementById('q-fbconf').textContent=c.conf;
+  document.getElementById('q-fbexp').innerHTML=c.exp.map(x=>`<li>${x}</li>`).join('');
+  document.getElementById('m-score').textContent=S.score;
+  document.getElementById('m-pct').textContent=`${Math.round(S.score/S.answered*100)}%`;
+  const nb=document.getElementById('q-nxt');
+  nb.className='next-btn-q show';
+  nb.textContent=S.quizIdx<5?'⚗️ Collect element & continue →':'⚗️ Collect final element & claim prize! →';
+  nb.onclick=collectAndReturn;
 }
 
-document.getElementById('next-btn').onclick = () => { current++; renderClue(); };
-
-function showResults() {
-  document.getElementById('game-area').style.display = 'none';
-  document.getElementById('prog-wrap').style.display = 'none';
-  const pct = Math.round(score/CLUES.length*100);
-  document.getElementById('res-score').textContent = `${score} / ${CLUES.length}`;
-  document.getElementById('res-label').textContent = `${pct}% — ${pct>=83?'Outstanding':pct>=67?'Excellent':pct>=50?'Good':'Keep practising'}`;
-  const grades = [
-    {s:'6/6',p:'100%',l:'Outstanding',c:'#059669'},{s:'5/6',p:'83%',l:'Excellent',c:'#0891B2'},
-    {s:'4/6',p:'67%',l:'Good',c:'#F59E0B'},{s:'1–3/6',p:'≤50%',l:'Keep reviewing',c:'#DC2626'}
-  ];
-  document.getElementById('grade-cards').innerHTML = grades.map(g =>
-    `<div class="grade-card" style="border-color:${g.c};color:${g.c};background:#0F1923"><strong>${g.s}</strong><br>${g.p} — ${g.l}</div>`).join('');
-  document.getElementById('results').className = 'results show';
-  document.getElementById('rubric').style.display = 'block';
-  buildRubric();
+function collectAndReturn(){
+  const c=CLUES[S.quizIdx];
+  if(!S.collected.includes(c.sym)) S.collected.push(c.sym);
+  document.getElementById('m-cp').textContent=`${S.collected.length}/6`;
+  if(S.collected.length===6){ showPrize(); return; }
+  show('s-map');
+  initMap();
+  document.getElementById('go-btn').disabled=false;
 }
 
-function buildRubric() {
-  const dims = [
-    ['Scientific accuracy','Were the chemistry clues factually correct?'],
-    ['Conceptual clarity','Were the clues clearly worded and unambiguous?'],
-    ['Disciplinary relevance','Did the game connect to your pharmacy / biochem / pre-med major?'],
-    ['Difficulty calibration','Was the challenge level appropriate for your course stage?'],
-    ['Answer feedback quality','Did the explanations help you understand the chemistry?'],
-  ];
-  const c = document.getElementById('rubric-rows');
-  c.innerHTML = dims.map((d,di) => `
-    <div class="rubric-row">
-      <div class="rubric-label"><div class="rubric-title">${d[0]}</div><div class="rubric-desc">${d[1]}</div></div>
-      <div class="rubric-stars">${[1,2,3,4,5].map(n=>`<div class="star" onclick="selectStar(${di},${n},this)">${n}</div>`).join('')}</div>
-    </div>`).join('');
+// ════════════════════════════════════════════════
+//  FINALE
+// ════════════════════════════════════════════════
+function showFinale(){
+  show('s-finale');
+  buildPT(); buildShelf();
+  const door=document.getElementById('door-overlay');
+  door.style.display='grid'; door.classList.remove('door-open');
 }
 
-function selectStar(dim, val, el) {
-  el.closest('.rubric-stars').querySelectorAll('.star').forEach(s => s.classList.remove('sel'));
-  el.classList.add('sel');
+function buildPT(){
+  const g=document.getElementById('pt-grid');
+  g.innerHTML='';
+  const cats={};
+  [1,3,11,19].forEach(n=>cats[n]='#162512');
+  [2,10,18,36].forEach(n=>cats[n]='#141226');
+  [5,6,7,8,9,14,15,16,17,33,34,35].forEach(n=>cats[n]='#111B2A');
+  for(let n=21;n<=30;n++) cats[n]='#1A1010';
+
+  PT.forEach(el=>{
+    const d=document.createElement('div');
+    d.className=el.t?'pt-cell tc':'pt-cell fc';
+    d.style.gridColumn=el.c; d.style.gridRow=el.r;
+    if(!el.t) d.style.background=cats[el.n]||'#111C2D';
+    if(el.t){
+      d.id=`pt-${el.s}`; d.dataset.sym=el.s;
+      d.innerHTML=`<div class="cn">${el.n}</div><div class="cs" style="color:#00E5CC;opacity:.35">?</div>`;
+      d.onclick=()=>tryPlace(el.s);
+    } else {
+      d.innerHTML=`<div class="cn">${el.n}</div><div class="cs">${el.s}</div>`;
+    }
+    g.appendChild(d);
+  });
 }
 
-function submitRubric() {
-  document.getElementById('rubric-thanks').style.display = 'block';
-  document.querySelector('.submit-rubric').disabled = true;
+function buildShelf(){
+  const sh=document.getElementById('shelf');
+  sh.querySelectorAll('.shelf-elem').forEach(e=>e.remove());
+  S.collected.forEach(sym=>{
+    const c=CLUES.find(cl=>cl.sym===sym);
+    const el=document.createElement('div');
+    el.className='shelf-elem'+(S.placed[sym]?' used':'');
+    el.id=`se-${sym}`; el.dataset.sym=sym;
+    el.style.borderColor=c.color;
+    el.innerHTML=`<div class="se-n">${c.num}</div><div class="se-s" style="color:${c.color}">${sym}</div><div class="se-nm">${c.opts[c.ans].split(' ')[0]}</div>`;
+    el.onclick=()=>selElem(sym);
+    sh.appendChild(el);
+  });
 }
 
-function restart() {
-  current = 0; score = 0; answered = 0;
-  document.getElementById('score').textContent = '0';
-  document.getElementById('pct').textContent = '0%';
-  document.getElementById('results').className = 'results';
-  document.getElementById('rubric').style.display = 'none';
-  document.getElementById('game-area').style.display = 'block';
-  document.getElementById('prog-wrap').style.display = 'block';
-  renderClue();
+function selElem(sym){
+  if(S.placed[sym]) return;
+  document.querySelectorAll('.shelf-elem').forEach(e=>e.classList.remove('sel'));
+  if(S.selElem===sym){ S.selElem=null; setInst('Select an element from your backpack below, then click its empty slot on the table.'); return; }
+  S.selElem=sym;
+  document.getElementById(`se-${sym}`)?.classList.add('sel');
+  const c=CLUES.find(cl=>cl.sym===sym);
+  setInst(`"${sym}" selected — now click its correct empty slot on the periodic table above.`);
 }
 
-renderClue();
+function tryPlace(target){
+  if(!S.selElem){ setInst('← First select an element from your backpack below.'); return; }
+  if(S.placed[target]) return;
+  const sel=S.selElem;
+  const cell=document.getElementById(`pt-${target}`);
+  if(sel===target){
+    const c=CLUES.find(cl=>cl.sym===sel);
+    S.placed[sel]=true;
+    cell.classList.add('placed'); cell.onclick=null;
+    cell.innerHTML=`<div class="cn" style="color:var(--muted)">${c.num}</div><div class="cs" style="color:var(--teal);font-size:13px;font-weight:800">${sel}</div>`;
+    document.getElementById(`se-${sel}`)?.classList.add('used');
+    S.selElem=null;
+    document.querySelectorAll('.shelf-elem').forEach(e=>e.classList.remove('sel'));
+    const done=Object.keys(S.placed).length;
+    if(done===6){ setInst('✓ All 6 elements placed! Unlocking the lab door…'); setTimeout(openDoor,900); }
+    else setInst(`✓ ${sel} placed! ${6-done} element${6-done>1?'s':''} remaining.`);
+  } else {
+    cell.classList.add('wshake');
+    setTimeout(()=>cell.classList.remove('wshake'),420);
+    setInst(`✗ "${sel}" doesn't belong there. Think about its period and group!`);
+  }
+}
+
+function setInst(msg){ document.getElementById('f-inst').textContent=msg; }
+
+function openDoor(){
+  const d=document.getElementById('door-overlay');
+  d.classList.add('door-open');
+  setTimeout(()=>{ d.style.display='none'; setTimeout(()=>showPrize(),300); },1700);
+}
+
+// ════════════════════════════════════════════════
+//  PRIZE
+// ════════════════════════════════════════════════
+function showPrize(){
+  show('s-prize');
+  const pct=Math.round(S.score/6*100);
+  document.getElementById('prize-score').textContent=`${S.score} / 6`;
+  const msg=pct>=83?'Outstanding — top of the lab! 🎉':pct>=67?'Excellent work, scientist! 🔬':pct>=50?'Good effort — keep studying! 📚':'Keep practising — you\'ll get it! 💪';
+  document.getElementById('prize-lbl').textContent=`${pct}% — ${msg}`;
+}
+
+// ════════════════════════════════════════════════
+//  RESTART
+// ════════════════════════════════════════════════
+function restartGame(){
+  S={step:0,quizIdx:-1,score:0,answered:0,collected:[],avatarPos:[62,400],moving:false,selElem:null,placed:{}};
+  ['m-score','m-cp','m-pct'].forEach((id,i)=>document.getElementById(id).textContent=['0','0/6','—'][i]);
+  show('s-map'); initMap();
+  document.getElementById('go-btn').disabled=false;
+}
+
+// ════════════════════════════════════════════════
+//  BOOT
+// ════════════════════════════════════════════════
+initParticles();
 </script>
 </body>
 </html>
