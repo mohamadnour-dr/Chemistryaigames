@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acid Shooter — Game 3 · Acid–Base Chemistry</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#04040E;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden;}
+  canvas{cursor:none;display:block;}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+/* ══════════════════════════════════════════════════════════════
+   ACID SHOOTER — Brønsted–Lowry 2D Chemistry Shooter
+   Shoot the acidic hydrogen to form the conjugate base!
+   6 levels · increasing speed · polyprotic complexity
+   ══════════════════════════════════════════════════════════════ */
+
+const cv = document.getElementById('c');
+const g  = cv.getContext('2d');
+const W  = Math.min(920, window.innerWidth);
+const H  = Math.min(648, window.innerHeight);
+cv.width = W; cv.height = H;
+
+/* ─── constants ──────────────────────────────────────────── */
+const AR   = 22;   // atom radius px
+const BSPD = 13;   // bullet speed
+const BG   = '#04040E';
+
+/* ─── static starfield ───────────────────────────────────── */
+const STARS = Array.from({length:110}, () => ({
+  x:Math.random()*W, y:Math.random()*H,
+  r:Math.random()*1.4+0.25, ph:Math.random()*6.28
+}));
+
+/* ─── element colour palette ─────────────────────────────── */
+const EC = {
+  H  : { f:'#D8D8D8', s:'#888888', t:'#111' },  // neutral H
+  Ha : { f:'#D8AAAA', s:'#AA5544', t:'#2a1010' }, // acidic H (warm tint)
+  C  : { f:'#2d3d52', s:'#4a6070', t:'#cde'  },
+  O  : { f:'#7a1e1e', s:'#CC3333', t:'#FFC8C8' },
+  N  : { f:'#162870', s:'#3355BB', t:'#CCE0FF' },
+  Cl : { f:'#1a5020', s:'#2EA040', t:'#AAFFCC' },
+  F  : { f:'#6a4000', s:'#CC8833', t:'#FFE0AA' },
+  S  : { f:'#706800', s:'#AAAA00', t:'#FFFF88' },
+  P  : { f:'#6a3200', s:'#BB6622', t:'#FFCC88' },
+};
+
+/* ══════════════════════════════════════════════════════════
+   LEVEL DATA
+   atoms: {s, rx, ry, acidic}
+     s      = element symbol (for colour lookup; acidic H → use 'Ha')
+     rx,ry  = position relative to molecule centre
+     acidic = true if shooting this H is correct
+   bonds: {a, b, t}  a/b = atom indices; t = 1 single / 2 double
+   ══════════════════════════════════════════════════════════ */
+const LEVELS = [
+
+  /* 1 ── HCl */
+  { id:1, name:'HCl', full:'Hydrochloric Acid', atype:'Strong monoprotic acid',
+    desc:'The simplest strong acid. It has exactly ONE hydrogen — and it fully ionizes as H⁺.',
+    cb:'Cl⁻', cbName:'Chloride ion', rxn:'HCl → H⁺ + Cl⁻', pka:'≈ −7',
+    spd:1.9, ymot:false, col:'#66AAFF',
+    hint:'💡 HCl has a single H atom. It\'s completely ionizable — shoot the H!',
+    atoms:[
+      {s:'Ha',rx:-62,ry: 0,acidic:true },
+      {s:'Cl',rx: 62,ry: 0,acidic:false},
+    ],
+    bonds:[{a:0,b:1,t:1}],
+    exp:[
+      'HCl donates H⁺ completely → strong acid, 100% dissociation in water',
+      'Cl⁻ is an extremely weak base — conjugate of a strong acid is always a weak base',
+      'Charge: neutral HCl loses H⁺ (+1) → Cl⁻ acquires −1 charge',
+      'pKa ≈ −7: far below 0 confirms complete ionization in aqueous solution'
+    ],
+    rel:'HCl is secreted by parietal cells in the stomach (gastric acid, pH ≈ 1.5–2). Proton pump inhibitors (e.g. omeprazole) block H⁺/K⁺-ATPase to suppress HCl secretion — key in treating GERD and peptic ulcers.'
+  },
+
+  /* 2 ── HF */
+  { id:2, name:'HF', full:'Hydrofluoric Acid', atype:'Weak monoprotic acid',
+    desc:'Despite the highly electronegative F, HF is only a weak acid because the H–F bond is very strong.',
+    cb:'F⁻', cbName:'Fluoride ion', rxn:'HF ⇌ H⁺ + F⁻', pka:'3.17',
+    spd:1.9, ymot:false, col:'#FFBB55',
+    hint:'💡 HF has one H atom bonded to fluorine. Even though HF is weak, the H can still ionize. Shoot it!',
+    atoms:[
+      {s:'Ha',rx:-55,ry: 0,acidic:true },
+      {s:'F', rx: 55,ry: 0,acidic:false},
+    ],
+    bonds:[{a:0,b:1,t:1}],
+    exp:[
+      'HF is WEAK (pKa 3.17) despite F being the most electronegative element — the H–F bond is exceptionally strong',
+      'Across Group 17: bond strength HF > HCl > HBr > HI → acid strength reverses: HI > HBr > HCl >> HF',
+      'F⁻ is a moderately strong conjugate base — conjugate of a weak acid = relatively strong base',
+      'HCl is strong because the H–Cl bond is much weaker → complete proton donation'
+    ],
+    rel:'Fluoride (F⁻) incorporates into hydroxyapatite → fluorapatite, hardening tooth enamel (cavity prevention). NaF is the active ingredient in fluoride toothpaste. HF burns are clinically dangerous despite being a weak acid — F⁻ chelates Ca²⁺/Mg²⁺.'
+  },
+
+  /* 3 ── H₂CO₃ (carbonic acid) */
+  { id:3, name:'H₂CO₃', full:'Carbonic Acid', atype:'Weak diprotic acid',
+    desc:'Two ionizable −OH hydrogens (polyprotic!). Shooting either gives HCO₃⁻ as the first conjugate base.',
+    cb:'HCO₃⁻', cbName:'Bicarbonate ion', rxn:'H₂CO₃ ⇌ H⁺ + HCO₃⁻', pka:'6.35 (pKa₁)',
+    spd:1.9, ymot:true, col:'#44DDAA',
+    hint:'💡 H₂CO₃ is DIPROTIC — two −OH hydrogens (lower-left & lower-right) can ionize. The top =O has no H. Shoot either OH hydrogen!',
+    atoms:[
+      {s:'C', rx:  0,ry:  0,acidic:false},
+      {s:'O', rx:  0,ry:-68,acidic:false},
+      {s:'O', rx:-78,ry: 40,acidic:false},
+      {s:'Ha',rx:-136,ry:74,acidic:true },
+      {s:'O', rx: 78,ry: 40,acidic:false},
+      {s:'Ha',rx: 136,ry:74,acidic:true },
+    ],
+    bonds:[
+      {a:0,b:1,t:2},{a:0,b:2,t:1},{a:2,b:3,t:1},{a:0,b:4,t:1},{a:4,b:5,t:1}
+    ],
+    exp:[
+      'H₂CO₃ has 2 ionizable protons — the first dissociation (pKa₁ = 6.35) gives HCO₃⁻',
+      'HCO₃⁻ is amphoteric: it can act as BOTH an acid (→ CO₃²⁻) and a base (→ H₂CO₃)',
+      'Blood pH 7.4: pH = 6.35 + log([HCO₃⁻]/[H₂CO₃]) → ratio ≈ 20:1',
+      'CO₂(aq) + H₂O ⇌ H₂CO₃ — carbonic anhydrase catalyzes this equilibrium in red blood cells'
+    ],
+    rel:'The H₂CO₃ / HCO₃⁻ pair is the dominant blood pH buffer. Lungs regulate CO₂ (and thus H₂CO₃) while kidneys regulate HCO₃⁻. Disruption causes respiratory or metabolic acidosis/alkalosis.'
+  },
+
+  /* 4 ── NH₄⁺ (ammonium) */
+  { id:4, name:'NH₄⁺', full:'Ammonium Ion', atype:'Cationic weak acid',
+    desc:'A CATION acting as an acid! All 4 N−H bonds are equivalent — shoot any one to release H⁺ and form NH₃.',
+    cb:'NH₃', cbName:'Ammonia', rxn:'NH₄⁺ ⇌ H⁺ + NH₃', pka:'9.25',
+    spd:1.9, ymot:true, col:'#AA88FF', charge:'+',
+    hint:'💡 NH₄⁺ is a CATIONIC acid — a positive ion donating H⁺! All 4 N−H bonds are identical. Hit any one of the four H atoms!',
+    atoms:[
+      {s:'N', rx:  0,ry:  0,acidic:false},
+      {s:'Ha',rx:  0,ry:-72,acidic:true },
+      {s:'Ha',rx: 72,ry:  0,acidic:true },
+      {s:'Ha',rx:  0,ry: 72,acidic:true },
+      {s:'Ha',rx:-72,ry:  0,acidic:true },
+    ],
+    bonds:[{a:0,b:1,t:1},{a:0,b:2,t:1},{a:0,b:3,t:1},{a:0,b:4,t:1}],
+    exp:[
+      'NH₄⁺ is the conjugate acid of ammonia — a CATION can act as a Brønsted–Lowry acid!',
+      'pKa = 9.25: at blood pH 7.4, NH₄⁺ dominates strongly over NH₃',
+      'NH₃ is a moderately strong base: Kb = 1.8×10⁻⁵, pKb = 4.75',
+      'Ka × Kb = Kw = 1.0×10⁻¹⁴ → pKa + pKb = 14 (the conjugate pair rule)'
+    ],
+    rel:'The liver converts toxic NH₄⁺ to urea for safe renal excretion. In hepatic failure, NH₄⁺/NH₃ accumulates → hepatic encephalopathy. Lactulose therapy acidifies the colon to trap NH₄⁺ and prevent NH₃ absorption.'
+  },
+
+  /* 5 ── H₃PO₄ (phosphoric acid) */
+  { id:5, name:'H₃PO₄', full:'Phosphoric Acid', atype:'Triprotic acid',
+    desc:'THREE ionizable −OH hydrogens around phosphorus. The P=O top has NO hydrogen. Moving fast — aim precisely!',
+    cb:'H₂PO₄⁻', cbName:'Dihydrogen phosphate', rxn:'H₃PO₄ ⇌ H⁺ + H₂PO₄⁻', pka:'2.15 (pKa₁)',
+    spd:1.9, ymot:true, col:'#FF6688',
+    hint:'💡 H₃PO₄ is TRIPROTIC — 3 acidic −OH H\'s: lower-left, lower-right, upper-right. The top P=O has NO hydrogen. Shoot any of the 3 acidic H atoms!',
+    atoms:[
+      {s:'P', rx:   0,ry:  0,acidic:false},
+      {s:'O', rx:   0,ry:-76,acidic:false},
+      {s:'O', rx: -80,ry: 48,acidic:false},
+      {s:'Ha',rx:-138,ry: 86,acidic:true },
+      {s:'O', rx:  80,ry: 48,acidic:false},
+      {s:'Ha',rx: 138,ry: 86,acidic:true },
+      {s:'O', rx:  90,ry:-45,acidic:false},
+      {s:'Ha',rx: 152,ry:-78,acidic:true },
+    ],
+    bonds:[
+      {a:0,b:1,t:2},{a:0,b:2,t:1},{a:2,b:3,t:1},
+      {a:0,b:4,t:1},{a:4,b:5,t:1},{a:0,b:6,t:1},{a:6,b:7,t:1}
+    ],
+    exp:[
+      'H₃PO₄ pKa values: pKa₁=2.15, pKa₂=7.20, pKa₃=12.35 — three sequential deprotonations',
+      'All ionizable H atoms are on −OH groups; the P=O oxygen carries no hydrogen',
+      'H₂PO₄⁻/HPO₄²⁻ (pKa₂=7.20) operates near physiological pH — the intracellular buffer pair',
+      'Each deprotonation adds one unit of negative charge: H₃PO₄ → H₂PO₄⁻ → HPO₄²⁻ → PO₄³⁻'
+    ],
+    rel:'Phosphate buffer (pKa₂=7.20) is the primary intracellular buffer. ATP, DNA backbone, and phospholipids all contain phosphate groups — understanding pKa is fundamental to pharmacokinetics and biochemistry.'
+  },
+];
+
+/* ═══════════════════════════════════════════════════════════
+   GAME STATE
+   ═══════════════════════════════════════════════════════════ */
+let gs      = 'start'; // start|intro|playing|levdone|gameover|win
+let lvl     = 0;
+let lives   = 3;
+let score   = 0;
+let lastPts = 0;
+let mx = W/2, my = H/2;
+let bullets    = [];
+let particles  = [];
+let floats     = [];
+let hintOn     = false;
+let lvlStartT  = 0;
+let mol        = null;
+
+/* gun */
+let gunAngle = -Math.PI/2;
+let gunFlash = 0;
+const GX = W/2, GY = H - 30;
+const BARREL = 54;
+
+/* ═══════════════════════════════════════════════════════════
+   MOLECULE CLASS
+   ═══════════════════════════════════════════════════════════ */
+class Mol {
+  constructor(ld) {
+    this.ld = ld;
+    this.x  = W / 2;
+    this.y  = H * 0.30;
+    const s = ld.spd;
+    this.vx = s * (Math.random() > 0.5 ? 1 : -1);
+    this.vy = ld.ymot ? s * 0.38 * (Math.random() > 0.5 ? 1 : -1) : 0;
+    this.flash     = new Map(); // atomIdx → {t, ok}
+    this.hintPulse = 0;         // frames to highlight correct H after a wrong hit
+    this.t = 0;
+  }
+
+  /* world position of atom i */
+  ap(i) {
+    const a = this.ld.atoms[i];
+    return { x: this.x + a.rx, y: this.y + a.ry };
+  }
+
+  /* max horizontal radius including atom circles */
+  ext() {
+    return Math.max(...this.ld.atoms.map(a => Math.abs(a.rx))) + AR + 12;
+  }
+
+  update() {
+    this.t++;
+    this.x += this.vx;
+    const ext = this.ext();
+    if (this.x - ext < 8 || this.x + ext > W - 8) {
+      this.vx *= -1;
+      this.x = Math.max(ext + 8, Math.min(W - ext - 8, this.x));
+    }
+    if (this.ld.ymot) {
+      this.y += this.vy;
+      const yMin = 78, yMax = H * 0.56;
+      if (this.y < yMin || this.y > yMax) {
+        this.vy *= -1;
+        this.y = Math.max(yMin, Math.min(yMax, this.y));
+      }
+    }
+    this.flash.forEach((v, k) => { v.t--; if (v.t <= 0) this.flash.delete(k); });
+    if (this.hintPulse > 0) this.hintPulse--;
+  }
+
+  draw() {
+    const ld = this.ld;
+
+    /* ── bonds ── */
+    ld.bonds.forEach(b => {
+      const p1 = this.ap(b.a), p2 = this.ap(b.b);
+      const dx = p2.x - p1.x, dy = p2.y - p1.y;
+      const len = Math.sqrt(dx*dx + dy*dy);
+      if (len < 2) return;
+      const ux = dx/len, uy = dy/len;
+      g.strokeStyle = '#5577AA'; g.lineWidth = 2.2;
+      if (b.t === 1) {
+        g.beginPath();
+        g.moveTo(p1.x + ux*AR, p1.y + uy*AR);
+        g.lineTo(p2.x - ux*AR, p2.y - uy*AR);
+        g.stroke();
+      } else {
+        /* double bond — two parallel lines */
+        const nx = -uy * 4.5, ny = ux * 4.5;
+        for (const sg of [1, -1]) {
+          g.beginPath();
+          g.moveTo(p1.x + ux*AR + nx*sg, p1.y + uy*AR + ny*sg);
+          g.lineTo(p2.x - ux*AR + nx*sg, p2.y - uy*AR + ny*sg);
+          g.stroke();
+        }
+      }
+    });
+
+    /* ── atoms ── */
+    ld.atoms.forEach((a, i) => {
+      const pos  = this.ap(i);
+      const fl   = this.flash.get(i);
+      const key  = a.s === 'Ha' ? 'Ha' : a.s; // 'Ha' = acidic H colour key
+      const ec   = EC[key] || EC.H;
+
+      let fill = ec.f, strk = ec.s, glow = null, blur = 0;
+
+      if (fl) {
+        /* flash on hit */
+        fill = fl.ok ? '#00EE77' : '#DD1111';
+        strk = fill; glow = fill; blur = 30;
+      } else if (this.hintPulse > 0 && a.acidic) {
+        /* hint pulse after wrong hit — highlight correct atoms */
+        glow = '#FFD700';
+        blur = 10 + 14 * (this.hintPulse / 90);
+      }
+
+      if (glow) { g.shadowColor = glow; g.shadowBlur = blur; }
+      g.beginPath(); g.arc(pos.x, pos.y, AR, 0, Math.PI*2);
+      g.fillStyle = fill; g.fill();
+      g.strokeStyle = strk; g.lineWidth = 2.2; g.stroke();
+      g.shadowBlur = 0;
+
+      /* atom symbol */
+      const sym = a.s === 'Ha' ? 'H' : a.s;
+      const fs  = sym.length > 2 ? 10 : sym.length > 1 ? 13 : 16;
+      g.font = `bold ${fs}px 'Segoe UI', sans-serif`;
+      g.fillStyle = fl ? '#000' : ec.t;
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(sym, pos.x, pos.y);
+    });
+
+    /* ── charge label ── */
+    if (ld.charge) {
+      const topA = ld.atoms.reduce((best, a) => a.ry < best.ry ? a : best);
+      g.font = 'bold 15px monospace'; g.fillStyle = '#FFD700';
+      g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+      g.fillText(ld.charge, this.x + topA.rx + 20, this.y + topA.ry - 14);
+    }
+
+    /* ── name tag above molecule ── */
+    const topY = Math.min(...ld.atoms.map(a => a.ry));
+    g.font = 'bold 15px Segoe UI';
+    g.fillStyle = ld.col + 'BB';
+    g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+    g.fillText(ld.name, this.x, this.y + topY - 30);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BULLET
+   ═══════════════════════════════════════════════════════════ */
+class Bullet {
+  constructor(x, y, vx, vy) {
+    this.x=x; this.y=y; this.vx=vx; this.vy=vy;
+    this.alive=true; this.trail=[];
+  }
+  update() {
+    this.trail.unshift({x:this.x,y:this.y});
+    if (this.trail.length > 10) this.trail.pop();
+    this.x += this.vx; this.y += this.vy;
+    if (this.x<-20||this.x>W+20||this.y<-20||this.y>H+20) this.alive=false;
+  }
+  draw() {
+    this.trail.forEach((p,i) => {
+      const f=(this.trail.length-i)/this.trail.length;
+      g.beginPath(); g.arc(p.x,p.y,4.5*f,0,Math.PI*2);
+      g.fillStyle=`rgba(255,200,50,${f*0.5})`; g.fill();
+    });
+    g.shadowColor='#FFDD00'; g.shadowBlur=16;
+    g.beginPath(); g.arc(this.x,this.y,5.5,0,Math.PI*2);
+    g.fillStyle='#FFE040'; g.fill();
+    g.shadowBlur=0;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PARTICLE
+   ═══════════════════════════════════════════════════════════ */
+class Particle {
+  constructor(x,y,col) {
+    this.x=x; this.y=y;
+    this.vx=(Math.random()-0.5)*12;
+    this.vy=(Math.random()-0.5)*12-2;
+    this.life=1;
+    this.decay=0.014+Math.random()*0.028;
+    this.r=2.5+Math.random()*5;
+    this.col=col;
+  }
+  update(){ this.x+=this.vx; this.y+=this.vy; this.vy+=0.2; this.life-=this.decay; }
+  draw(){
+    const h=Math.floor(this.life*255).toString(16).padStart(2,'0');
+    g.beginPath(); g.arc(this.x,this.y,this.r*this.life,0,Math.PI*2);
+    g.fillStyle=this.col+h; g.fill();
+  }
+}
+function burst(n,x,y,col){ for(let i=0;i<n;i++) particles.push(new Particle(x,y,col)); }
+
+/* ═══════════════════════════════════════════════════════════
+   FLOATING TEXT
+   ═══════════════════════════════════════════════════════════ */
+class FTxt {
+  constructor(x,y,txt,col,sz=20){
+    this.x=x;this.y=y;this.txt=txt;this.col=col;this.sz=sz;
+    this.life=1;this.vy=-1.8;
+  }
+  update(){ this.y+=this.vy; this.life-=0.016; }
+  draw(){
+    const h=Math.floor(this.life*255).toString(16).padStart(2,'0');
+    g.font=`bold ${this.sz}px Segoe UI`;
+    g.fillStyle=this.col+h;
+    g.textAlign='center'; g.textBaseline='alphabetic';
+    g.fillText(this.txt,this.x,this.y);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HIT DETECTION
+   ═══════════════════════════════════════════════════════════ */
+function checkHits() {
+  bullets.forEach(b => {
+    if (!b.alive) return;
+    mol.ld.atoms.forEach((atom, i) => {
+      const p = mol.ap(i);
+      const dx = b.x-p.x, dy = b.y-p.y;
+      if (dx*dx+dy*dy < (AR+8)*(AR+8)) {
+        b.alive = false;
+
+        if (atom.s !== 'H' && atom.s !== 'Ha') {
+          /* hit a non-H atom — no life penalty, just feedback */
+          burst(7,p.x,p.y,'#FFAA33');
+          floats.push(new FTxt(p.x,p.y-40,'Not H!','#FFAA33',16));
+
+        } else if (atom.acidic) {
+          /* ✓ CORRECT hit */
+          mol.flash.set(i,{t:60,ok:true});
+          burst(50,p.x,p.y,'#00FF88');
+          burst(25,p.x,p.y,'#FFFFFF');
+          const elap   = (performance.now()-lvlStartT)/1000;
+          const tBonus = Math.max(0, Math.round(150 - elap*2.2));
+          const pts    = 100 + tBonus;
+          score += pts; lastPts = pts;
+          floats.push(new FTxt(p.x,p.y-52,`+${pts}`,'#44FF88',22));
+          floats.push(new FTxt(W/2,H*0.62,
+            `${mol.ld.name}  −H⁺→  ${mol.ld.cb}`,'#CCFFEE',17));
+          gs = 'levdone';
+
+        } else {
+          /* ✗ WRONG H */
+          mol.flash.set(i,{t:50,ok:false});
+          burst(22,p.x,p.y,'#FF2222');
+          mol.hintPulse = 90;   // flash correct H's for ~1.5 s
+          floats.push(new FTxt(p.x,p.y-52,'Wrong H!','#FF4444',20));
+          floats.push(new FTxt(p.x,p.y-30,`−1 Life`,'#FF8888',14));
+          if (lives > 0) lives--;
+          if (lives === 0) {
+            gs = 'levdone';
+            setTimeout(() => { if (gs==='levdone') gs='gameover'; }, 1100);
+          }
+        }
+      }
+    });
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DRAWING HELPERS
+   ═══════════════════════════════════════════════════════════ */
+function rrect(x,y,w,h,r) {
+  g.beginPath();
+  g.moveTo(x+r,y); g.lineTo(x+w-r,y);
+  g.arcTo(x+w,y,x+w,y+r,r); g.lineTo(x+w,y+h-r);
+  g.arcTo(x+w,y+h,x+w-r,y+h,r); g.lineTo(x+r,y+h);
+  g.arcTo(x,y+h,x,y+h-r,r); g.lineTo(x,y+r);
+  g.arcTo(x,y,x+r,y,r); g.closePath();
+}
+
+function wrapLines(txt,maxW,fnt) {
+  g.font=fnt;
+  const words=txt.split(' '); const lines=[]; let cur='';
+  words.forEach(w => {
+    const t=cur?cur+' '+w:w;
+    if (g.measureText(t).width>maxW&&cur) { lines.push(cur); cur=w; }
+    else cur=t;
+  });
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+function drawBg() {
+  g.fillStyle=BG; g.fillRect(0,0,W,H);
+  /* subtle nebula */
+  const nb=g.createRadialGradient(W*0.22,H*0.25,30,W*0.22,H*0.25,320);
+  nb.addColorStop(0,'rgba(12,28,75,0.10)'); nb.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=nb; g.fillRect(0,0,W,H);
+  /* stars */
+  const t=Date.now()*0.0009;
+  STARS.forEach(s => {
+    const a=0.22+0.28*Math.sin(t+s.ph);
+    g.beginPath(); g.arc(s.x,s.y,s.r,0,Math.PI*2);
+    g.fillStyle=`rgba(255,255,255,${a})`; g.fill();
+  });
+}
+
+function gunTip() {
+  return { x:GX+Math.cos(gunAngle)*(BARREL+24), y:GY+Math.sin(gunAngle)*(BARREL+24) };
+}
+
+function drawAimLine() {
+  const tip=gunTip();
+  g.save();
+  g.strokeStyle='rgba(80,130,200,0.14)';
+  g.lineWidth=1.5; g.setLineDash([5,10]);
+  g.beginPath(); g.moveTo(tip.x,tip.y);
+  g.lineTo(tip.x+Math.cos(gunAngle)*2400, tip.y+Math.sin(gunAngle)*2400);
+  g.stroke(); g.setLineDash([]); g.restore();
+}
+
+function drawGun() {
+  g.save(); g.translate(GX,GY);
+  /* base ring */
+  g.beginPath(); g.arc(0,0,30,0,Math.PI*2);
+  g.fillStyle='#07182e'; g.fill();
+  g.strokeStyle='#1e4870'; g.lineWidth=2.5; g.stroke();
+  /* inner ring decorations */
+  for (let i=1;i<=2;i++){
+    g.beginPath(); g.arc(0,0,8+i*9,0,Math.PI*2);
+    g.strokeStyle=`rgba(50,110,180,${0.35-i*0.08})`; g.lineWidth=1; g.stroke();
+  }
+  /* barrel */
+  g.rotate(gunAngle);
+  g.fillStyle=gunFlash>0?'#FFDD44':'#122840';
+  g.beginPath(); g.roundRect(20,-7,BARREL,14,3); g.fill();
+  g.fillStyle='#1e4878'; g.beginPath(); g.roundRect(20,-7,14,14,3); g.fill();
+  g.fillStyle='#5a9acc'; g.beginPath(); g.roundRect(BARREL+20-6,-5,14,10,2); g.fill();
+  /* muzzle flash */
+  if (gunFlash>0){
+    const af=gunFlash/8;
+    g.shadowColor='#FFE000'; g.shadowBlur=22;
+    g.beginPath(); g.arc(BARREL+28,0,13*af,0,Math.PI*2);
+    g.fillStyle=`rgba(255,225,50,${af})`; g.fill();
+    g.shadowBlur=0;
+  }
+  g.restore();
+  if (gunFlash>0) gunFlash--;
+}
+
+function drawCrosshair() {
+  const sz=13, gap=5;
+  g.strokeStyle='rgba(160,210,255,0.70)'; g.lineWidth=1.5;
+  g.beginPath();
+  g.moveTo(mx-sz,my); g.lineTo(mx-gap,my);
+  g.moveTo(mx+gap,my); g.lineTo(mx+sz,my);
+  g.moveTo(mx,my-sz); g.lineTo(mx,my-gap);
+  g.moveTo(mx,my+gap); g.lineTo(mx,my+sz);
+  g.stroke();
+  g.beginPath(); g.arc(mx,my,2.5,0,Math.PI*2);
+  g.fillStyle='rgba(160,210,255,0.55)'; g.fill();
+}
+
+function drawHUD() {
+  const ld=LEVELS[Math.min(lvl,LEVELS.length-1)];
+  /* top bar */
+  g.fillStyle='rgba(3,6,18,0.95)'; g.fillRect(0,0,W,72);
+  g.strokeStyle='#102040'; g.lineWidth=1;
+  g.beginPath(); g.moveTo(0,72); g.lineTo(W,72); g.stroke();
+  /* left */
+  g.textBaseline='middle';
+  g.textAlign='left';
+  g.font='bold 11px Segoe UI'; g.fillStyle='#2d4a6a';
+  g.fillText(`LEVEL ${Math.min(lvl+1,LEVELS.length)} / ${LEVELS.length}  ·  ${ld.atype}`, 22, 17);
+  g.font='bold 16px Segoe UI'; g.fillStyle=ld.col;
+  g.fillText(ld.full, 22, 41);
+  g.font='12px Segoe UI'; g.fillStyle='#2d4a6a';
+  g.fillText(`pKa: ${ld.pka}`, 22, 62);
+  /* center */
+  g.textAlign='center';
+  g.font='bold 21px Segoe UI'; g.fillStyle='#FFDD44';
+  g.fillText(`SCORE  ${score}`, W/2, 22);
+  g.font='13px Segoe UI'; g.fillStyle='#6688AA';
+  g.fillText(`Target: shoot the acidic H⁺  →  ${ld.cb}  (${ld.cbName})`, W/2, 50);
+  /* right: lives */
+  g.textAlign='right';
+  for (let i=0;i<3;i++){
+    g.font='23px serif'; g.fillStyle=(2-i)<lives?'#EE2020':'#1a1a2a';
+    g.fillText('♥', W-22-i*34, 28);
+  }
+  g.font='12px Segoe UI'; g.fillStyle='#2d4a6a';
+  g.fillText('[H] hint', W-22, 58);
+  /* bottom guide bar — two lines so nothing clips */
+  g.fillStyle='rgba(3,6,18,0.90)'; g.fillRect(0,H-50,W,50);
+  g.strokeStyle='#102040'; g.lineWidth=1;
+  g.beginPath(); g.moveTo(0,H-50); g.lineTo(W,H-50); g.stroke();
+  g.textAlign='center'; g.font='12px Segoe UI';
+  g.fillStyle='#3a5570'; g.textBaseline='middle';
+  g.fillText('🖱  Move to aim  ·  Click to fire  ·  [H] show hint', W/2, H-33);
+  g.font='11px Segoe UI'; g.fillStyle='#2a3f55';
+  g.fillText('Warm-tinted H = potentially acidic  ·  Hit the correct H⁺  ·  Wrong H = −1 life  ·  Non-H atom = no penalty', W/2, H-15);
+}
+
+function drawHintBox() {
+  if (!hintOn) return;
+  const ld=LEVELS[Math.min(lvl,LEVELS.length-1)];
+  const mW=Math.min(580,W-80);
+  const lines=wrapLines(ld.hint,mW-32,'15px Segoe UI');
+  const bh=lines.length*26+22, bx=W/2-mW/2, by=H-56-bh;
+  g.fillStyle='rgba(4,9,24,0.97)';
+  rrect(bx,by,mW,bh,10); g.fill();
+  g.strokeStyle='#CC9922'; g.lineWidth=1.5;
+  rrect(bx,by,mW,bh,10); g.stroke();
+  g.font='15px Segoe UI'; g.fillStyle='#FFEE99';
+  g.textAlign='left'; g.textBaseline='alphabetic';
+  lines.forEach((l,i)=>g.fillText(l,bx+16,by+22+i*26));
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SCREENS
+   ═══════════════════════════════════════════════════════════ */
+function drawStart() {
+  drawBg();
+  g.shadowColor='#FF6644'; g.shadowBlur=36;
+  g.font='bold 46px Segoe UI'; g.fillStyle='#FF8866';
+  g.textAlign='center'; g.textBaseline='alphabetic';
+  g.fillText('⚗️  ACID SHOOTER', W/2, H*0.16);
+  g.shadowBlur=0;
+  g.font='16px Segoe UI'; g.fillStyle='#446677';
+  g.fillText('A Brønsted–Lowry Chemistry Shooter  ·  5 Levels', W/2, H*0.16+36);
+
+  const rows=[
+    ['🔬','An acid molecule shown as a structural formula bounces across the screen'],
+    ['🎯','Move your mouse to aim the gun at the bottom of the screen'],
+    ['🔫','Click to fire — your bullet must hit a hydrogen atom on the molecule'],
+    ['⚛️','Hit the ACIDIC H⁺ to transform the molecule into its conjugate base'],
+    ['💔','Hitting the wrong H costs one life  ·  you have 3 lives per run'],
+    ['📈','Each level introduces a more complex molecule with more H atoms'],
+  ];
+  const rowX = Math.max(60, W/2 - 310);
+  g.textAlign='left'; g.font='14px Segoe UI'; g.fillStyle='#AABBCC';
+  rows.forEach(([ic,txt],i) => g.fillText(`${ic}  ${txt}`, rowX, H*0.285+i*34));
+
+  g.textAlign='center';
+  g.font='13px Segoe UI'; g.fillStyle='#88443A';
+  g.fillText('Warm-tinted H atoms = potentially acidic  ·  Press [H] during play for a chemistry hint', W/2, H*0.735);
+  g.font='13px Segoe UI'; g.fillStyle='#336650';
+  g.fillText('Correct hit → +100–250 pts  ·  Wrong H → −1 life  ·  Hitting a non-H atom → no penalty', W/2, H*0.735+22);
+
+  /* level strip */
+  g.font='13px Segoe UI'; g.fillStyle='#223344';
+  g.fillText(LEVELS.map((l,i)=>`${i+1}: ${l.name}`).join('  ·  '), W/2, H*0.808);
+
+  /* start button */
+  const bw=230, bh=52, bx=W/2-115, by=H*0.875-26;
+  const hov=mx>=bx&&mx<=bx+bw&&my>=by&&my<=by+bh;
+  g.fillStyle=hov?'#112e1a':'#0a1d12';
+  rrect(bx,by,bw,bh,12); g.fill();
+  g.strokeStyle=hov?'#55EE88':'#228844'; g.lineWidth=2;
+  rrect(bx,by,bw,bh,12); g.stroke();
+  g.font='bold 19px Segoe UI'; g.fillStyle=hov?'#AAFFCC':'#44AA66';
+  g.textAlign='center'; g.textBaseline='middle';
+  g.fillText('▶  START GAME', W/2, H*0.875);
+  window._SB={x:bx,y:by,w:bw,h:bh};
+}
+
+function drawIntro() {
+  drawBg();
+  const ld=LEVELS[lvl];
+  const bw=Math.min(520,W-60), bh=290, bx=W/2-bw/2, by=H/2-bh/2-8;
+  g.fillStyle='rgba(3,8,22,0.97)'; rrect(bx,by,bw,bh,18); g.fill();
+  g.strokeStyle=ld.col; g.lineWidth=2.5; rrect(bx,by,bw,bh,18); g.stroke();
+
+  g.textAlign='center'; g.textBaseline='alphabetic';
+  g.font='bold 11px Segoe UI'; g.fillStyle=ld.col+'99';
+  g.fillText(`── LEVEL ${ld.id}  of  ${LEVELS.length} ──`, W/2, by+26);
+
+  g.shadowColor=ld.col; g.shadowBlur=20;
+  g.font='bold 40px Segoe UI'; g.fillStyle='#FFFFFF';
+  g.fillText(ld.name, W/2, by+80); g.shadowBlur=0;
+
+  g.font='15px Segoe UI'; g.fillStyle=ld.col;
+  g.fillText(`${ld.full}  ·  ${ld.atype}`, W/2, by+110);
+
+  const dl=wrapLines(ld.desc, bw-60, '14px Segoe UI');
+  g.font='14px Segoe UI'; g.fillStyle='#8899AB';
+  dl.forEach((l,i)=>g.fillText(l, W/2, by+136+i*22));
+
+  g.font='bold 14px Segoe UI'; g.fillStyle='#66FFAA';
+  g.fillText(`Conjugate base:  ${ld.cb}  (${ld.cbName})`, W/2, by+210);
+  g.font='13px Segoe UI'; g.fillStyle='#3a5566';
+  g.fillText(ld.rxn, W/2, by+232);
+
+  g.font='bold 14px Segoe UI'; g.fillStyle='#4488AA';
+  g.fillText('Click anywhere to begin!', W/2, by+272);
+}
+
+function drawLevelDone() {
+  /* keep game scene alive behind overlay */
+  if (mol) { mol.update(); mol.draw(); }
+  particles.forEach(p=>p.update()); particles=particles.filter(p=>p.life>0);
+  floats.forEach(f=>f.update()); floats=floats.filter(f=>f.life>0);
+  particles.forEach(p=>p.draw()); floats.forEach(f=>f.draw());
+  drawGun();
+
+  /* dark overlay */
+  g.fillStyle='rgba(0,0,0,0.80)'; g.fillRect(0,0,W,H);
+
+  const ld = LEVELS[Math.min(lvl, LEVELS.length-1)];
+
+  if (lives <= 0) {
+    /* ── out of lives ── */
+    const bw=Math.min(400,W-40), bh=160, bx=W/2-bw/2, by=H/2-80;
+    g.fillStyle='rgba(18,4,4,0.97)'; rrect(bx,by,bw,bh,16); g.fill();
+    g.strokeStyle='#EE3333'; g.lineWidth=2; rrect(bx,by,bw,bh,16); g.stroke();
+    g.font='bold 28px Segoe UI'; g.fillStyle='#FF4444';
+    g.textAlign='center'; g.textBaseline='alphabetic';
+    g.fillText('💀  OUT OF LIVES',W/2,by+55);
+    g.font='14px Segoe UI'; g.fillStyle='#AA7777';
+    g.fillText(`Level ${lvl+1}: ${ld.full}`,W/2,by+96);
+    g.font='12px Segoe UI'; g.fillStyle='#664444';
+    g.fillText('Game Over incoming…',W/2,by+130);
+    return;
+  }
+
+  /* ── correct hit info panel ── */
+  const PW = Math.min(720, W-60), PH = 490;
+  const PX = W/2 - PW/2, PY = H/2 - PH/2;
+  const PAD = 32; // inner horizontal padding
+
+  /* panel background */
+  g.fillStyle='rgba(3,10,22,0.98)';
+  rrect(PX,PY,PW,PH,18); g.fill();
+  g.strokeStyle='#33EE77'; g.lineWidth=2;
+  rrect(PX,PY,PW,PH,18); g.stroke();
+
+  /* ── header bar ── */
+  g.fillStyle='rgba(0,40,20,0.9)';
+  rrect(PX,PY,PW,54,18); g.fill();
+  g.beginPath(); g.rect(PX,PY+30,PW,24); g.fillStyle='rgba(0,40,20,0.9)'; g.fill();
+  g.shadowColor='#33FF77'; g.shadowBlur=16;
+  g.font='bold 21px Segoe UI'; g.fillStyle='#33FF77';
+  g.textAlign='center'; g.textBaseline='middle';
+  g.fillText(`✓  CORRECT!  —  Level ${ld.id} / ${LEVELS.length}`, W/2, PY+27);
+  g.shadowBlur=0;
+
+  /* ── pair display ── */
+  const midY = PY+108;
+  const boxW=162, boxH=70, gap=62;
+  const aX=W/2-gap/2-boxW, cbX=W/2+gap/2;
+
+  g.fillStyle='rgba(60,10,10,0.7)';
+  rrect(aX,midY-boxH/2,boxW,boxH,10); g.fill();
+  g.strokeStyle='#CC3333'; g.lineWidth=1.5;
+  rrect(aX,midY-boxH/2,boxW,boxH,10); g.stroke();
+  g.font='bold 23px Segoe UI'; g.fillStyle='#FF8888';
+  g.textAlign='center'; g.textBaseline='middle';
+  g.fillText(ld.name, aX+boxW/2, midY-10);
+  g.font='12px Segoe UI'; g.fillStyle='#AA6666';
+  g.fillText(ld.full, aX+boxW/2, midY+14);
+  g.font='11px Segoe UI'; g.fillStyle='#884444';
+  g.fillText('ACID', aX+boxW/2, midY+32);
+
+  /* arrow */
+  g.font='bold 22px Segoe UI'; g.fillStyle='#FFDD44';
+  g.textAlign='center'; g.textBaseline='middle';
+  g.fillText('−H⁺', W/2, midY-10);
+  g.fillText('⟶', W/2, midY+14);
+
+  /* conjugate base box */
+  g.fillStyle='rgba(0,40,20,0.7)';
+  rrect(cbX,midY-boxH/2,boxW,boxH,10); g.fill();
+  g.strokeStyle='#33AA66'; g.lineWidth=1.5;
+  rrect(cbX,midY-boxH/2,boxW,boxH,10); g.stroke();
+  g.font='bold 23px Segoe UI'; g.fillStyle='#66FFAA';
+  g.textAlign='center'; g.textBaseline='middle';
+  g.fillText(ld.cb, cbX+boxW/2, midY-10);
+  g.font='12px Segoe UI'; g.fillStyle='#44AA77';
+  g.fillText(ld.cbName, cbX+boxW/2, midY+14);
+  g.font='11px Segoe UI'; g.fillStyle='#226644';
+  g.fillText('CONJUGATE BASE', cbX+boxW/2, midY+32);
+
+  /* reaction + pKa */
+  g.font='14px Segoe UI'; g.fillStyle='#FFDD44';
+  g.textAlign='center'; g.textBaseline='alphabetic';
+  g.fillText(`${ld.rxn}   (pKa = ${ld.pka})`, W/2, PY+168);
+
+  /* ── separator ── */
+  const sx=PX+PAD, sw=PW-PAD*2, sepY=PY+182;
+  g.strokeStyle='#1a3a2a'; g.lineWidth=1;
+  g.beginPath(); g.moveTo(sx,sepY); g.lineTo(sx+sw,sepY); g.stroke();
+  g.font='bold 11px Segoe UI'; g.fillStyle='#2a5a3a'; g.textAlign='center';
+  g.fillText('WHY IS THIS H ACIDIC?', W/2, sepY+13);
+
+  /* ── explanation bullets ── */
+  const bulletX = PX+PAD+6, bulletMaxW = PW-PAD*2-22;
+  g.textAlign='left'; g.textBaseline='alphabetic';
+  let bulletY = PY+210;
+  ld.exp.forEach(line => {
+    const wrapped = wrapLines(line, bulletMaxW, '14px Segoe UI');
+    g.font='14px Segoe UI'; g.fillStyle='#FFDD44';
+    g.fillText('→', bulletX, bulletY);
+    g.fillStyle='#C0CCDA';
+    wrapped.forEach((wl,wi) => g.fillText(wl, bulletX+20, bulletY+wi*21));
+    bulletY += wrapped.length*21 + 6;
+  });
+
+  /* ── separator 2 ── */
+  const sep2Y = PY+360;
+  g.strokeStyle='#1a3a2a'; g.lineWidth=1;
+  g.beginPath(); g.moveTo(sx,sep2Y); g.lineTo(sx+sw,sep2Y); g.stroke();
+  g.font='bold 11px Segoe UI'; g.fillStyle='#2a5a3a'; g.textAlign='center';
+  g.fillText('CLINICAL / BIOCHEMICAL RELEVANCE', W/2, sep2Y+13);
+
+  /* relevance text */
+  g.font='13px Segoe UI'; g.fillStyle='#8EAABB';
+  g.textAlign='left'; g.textBaseline='alphabetic';
+  const relLines = wrapLines(ld.rel, PW-PAD*2, '13px Segoe UI');
+  relLines.forEach((l,i) => g.fillText(l, PX+PAD, sep2Y+30+i*19));
+
+  /* ── score badge ── */
+  g.font='bold 15px Segoe UI'; g.fillStyle='#FFDD44';
+  g.textAlign='left';
+  g.fillText(`+${lastPts} pts`, PX+PAD, PY+PH-18);
+
+  /* ── continue button ── */
+  const btnW=210, btnH=38, btnX=W/2-btnW/2, btnY=PY+PH-56;
+  const btnHov = mx>=btnX&&mx<=btnX+btnW&&my>=btnY&&my<=btnY+btnH;
+  g.fillStyle=btnHov?'#0d3020':'#081a10';
+  rrect(btnX,btnY,btnW,btnH,8); g.fill();
+  g.strokeStyle=btnHov?'#55EE99':'#33AA66'; g.lineWidth=1.5;
+  rrect(btnX,btnY,btnW,btnH,8); g.stroke();
+  g.font='bold 15px Segoe UI'; g.fillStyle=btnHov?'#AAFFCC':'#66DD99';
+  g.textAlign='center'; g.textBaseline='middle';
+  g.fillText(lvl+1<LEVELS.length?'Continue  →':'See Results  →', W/2, btnY+btnH/2);
+}
+
+function drawGameOver() {
+  drawBg();
+  g.shadowColor='#FF3333'; g.shadowBlur=34;
+  g.font='bold 44px Segoe UI'; g.fillStyle='#FF4455';
+  g.textAlign='center'; g.textBaseline='alphabetic';
+  g.fillText('💀  GAME OVER', W/2, H*0.3); g.shadowBlur=0;
+  g.font='16px Segoe UI'; g.fillStyle='#8899AA';
+  g.fillText(`Reached Level ${Math.min(lvl+1,LEVELS.length)}: ${LEVELS[Math.min(lvl,LEVELS.length-1)].full}`, W/2, H*0.3+46);
+  g.font='bold 22px Segoe UI'; g.fillStyle='#FFDD44';
+  g.fillText(`Final Score: ${score}`, W/2, H*0.3+84);
+  g.font='14px Segoe UI'; g.fillStyle='#3a5566';
+  g.fillText('Conjugate pairs completed:', W/2, H*0.3+126);
+  const done=LEVELS.slice(0,lvl);
+  done.forEach((l,i)=>{
+    g.font='14px Segoe UI'; g.fillStyle='#5577AA';
+    g.fillText(`${l.name}  −H⁺→  ${l.cb}`, W/2, H*0.3+148+i*22);
+  });
+  g.font='bold 16px Segoe UI'; g.fillStyle='#4488AA';
+  g.fillText('Click anywhere to try again', W/2, H*0.87);
+}
+
+function drawWin() {
+  drawBg();
+  g.shadowColor='#FFD700'; g.shadowBlur=36;
+  g.font='bold 42px Segoe UI'; g.fillStyle='#FFD700';
+  g.textAlign='center'; g.textBaseline='alphabetic';
+  g.fillText('🏆  ALL LEVELS COMPLETE!', W/2, H*0.13); g.shadowBlur=0;
+  g.font='16px Segoe UI'; g.fillStyle='#88FFAA';
+  g.fillText('All 5 acid molecules neutralized!', W/2, H*0.13+38);
+  g.font='bold 24px Segoe UI'; g.fillStyle='#FFD700';
+  g.fillText(`Final Score: ${score}`, W/2, H*0.13+76);
+
+  g.font='bold 13px Segoe UI'; g.fillStyle='#3a5566';
+  g.fillText('─  Conjugate Pair Summary  ─', W/2, H*0.36);
+  LEVELS.forEach((l,i) => {
+    const y = H*0.395+i*36;
+    g.textAlign='right'; g.font='bold 16px Segoe UI'; g.fillStyle=l.col;
+    g.fillText(l.name, W/2-10, y);
+    g.textAlign='left'; g.font='14px Segoe UI'; g.fillStyle='#BBCCDD';
+    g.fillText(`  −H⁺→  ${l.cb}   (${l.cbName})`, W/2+10, y);
+  });
+  g.textAlign='center'; g.font='bold 16px Segoe UI'; g.fillStyle='#44BB77';
+  g.fillText('Click anywhere to play again', W/2, H*0.94);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MAIN LOOP
+   ═══════════════════════════════════════════════════════════ */
+function loop() {
+  requestAnimationFrame(loop);
+
+  if (gs==='start')    { drawStart();   return; }
+  if (gs==='intro')    { drawIntro();   return; }
+  if (gs==='gameover') { drawGameOver();return; }
+  if (gs==='win')      { drawWin();     return; }
+
+  if (gs==='levdone') {
+    drawBg(); drawAimLine();
+    drawLevelDone();
+    return;
+  }
+
+  /* gs === 'playing' */
+  drawBg();
+  drawAimLine();
+
+  /* update */
+  mol.update();
+  bullets.forEach(b=>b.update()); bullets=bullets.filter(b=>b.alive);
+  particles.forEach(p=>p.update()); particles=particles.filter(p=>p.life>0);
+  floats.forEach(f=>f.update()); floats=floats.filter(f=>f.life>0);
+
+  checkHits();
+
+  /* draw scene */
+  particles.forEach(p=>p.draw());
+  mol.draw();
+  bullets.forEach(b=>b.draw());
+  floats.forEach(f=>f.draw());
+
+  gunAngle=Math.atan2(my-GY,mx-GX);
+  drawGun(); drawHUD(); drawHintBox(); drawCrosshair();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INPUT
+   ═══════════════════════════════════════════════════════════ */
+cv.addEventListener('mousemove', e => {
+  const r=cv.getBoundingClientRect();
+  mx=(e.clientX-r.left)*(W/r.width);
+  my=(e.clientY-r.top)*(H/r.height);
+});
+
+cv.addEventListener('click', e => {
+  const r=cv.getBoundingClientRect();
+  const cx2=(e.clientX-r.left)*(W/r.width);
+  const cy2=(e.clientY-r.top)*(H/r.height);
+
+  if (gs==='start') {
+    const b=window._SB;
+    if (b&&cx2>=b.x&&cx2<=b.x+b.w&&cy2>=b.y&&cy2<=b.y+b.h) gs='intro';
+    return;
+  }
+  if (gs==='intro') {
+    mol=new Mol(LEVELS[lvl]);
+    bullets=[]; particles=[]; floats=[]; hintOn=false;
+    lvlStartT=performance.now();
+    gs='playing'; return;
+  }
+  if (gs==='levdone' && lives>0) {
+    lvl++;
+    gs = lvl >= LEVELS.length ? 'win' : 'intro';
+    return;
+  }
+  if (gs==='gameover'||gs==='win') {    lvl=0; lives=3; score=0; lastPts=0; gs='start'; return;
+  }
+  if (gs==='playing') {
+    const tip=gunTip();
+    bullets.push(new Bullet(tip.x,tip.y,
+      Math.cos(gunAngle)*BSPD, Math.sin(gunAngle)*BSPD));
+    gunFlash=8;
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key.toLowerCase()==='h') hintOn=!hintOn;
+});
+
+/* kick off */
+loop();
+</script>
+</body>
+</html>
