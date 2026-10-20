@@ -1,6 +1,6 @@
 # Chemistryaigames
 
-Three browser games for first-year general chemistry, drafted with a large language model (Claude Sonnet 4.6, Anthropic) and reviewed by chemistry educators. They accompany the article *Large Language Model-Assisted Design of Chemistry Games for Health Professions Students* (BMC Medical Education, under review).
+hree browser games for first-year general chemistry, drafted with a large language model (Claude Sonnet 4.6, Anthropic) and reviewed by chemistry educators. They accompany the article *Large Language Model-Assisted Design of Chemistry Games for Health Professions Students* (BMC Medical Education, under review).
 
 | Game | File | Play |
 |---|---|---|
@@ -58,5 +58,5 @@ The files in this repository are the exact versions that were evaluated in the s
 - **VSEPR Haunted Lab:** The lone-pair rule is valid only for the molecules used in the game (see V55); the game covers four molecules with two to four electron domains and no bent molecules, expanded octets, or five or six electron domains.
 - **All games:** The games were not changed after the errors were found, so that the files remain the versions that were evaluated. The errors are listed in the repository README.
 
-The full checklists, with the checkers’ verdicts and the authors’ adjudication, are in Supporting Information Dataset S1 of the article.
+The full checklists, with the checkers’ verdicts and the authors’ adjudication, are available from the corresponding author on request.
 
